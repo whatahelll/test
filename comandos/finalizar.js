@@ -224,6 +224,20 @@ async function processWinnerVoteResult(client, match, team1, team2, allPlayers, 
 
             try {
                 const guild = client.guilds.cache.get(voteMessage.guild.id);
+                
+                if (updatedMatch.lobbyChannelId) {
+                    const lobbyChannel = guild.channels.cache.get(updatedMatch.lobbyChannelId);
+                    if (lobbyChannel) {
+                        try {
+                            console.log(`Deletando canal de lobby temporário: ${lobbyChannel.name} (${lobbyChannel.id})`);
+                            await lobbyChannel.delete();
+                            console.log('Canal de lobby temporário deletado');
+                        } catch (error) {
+                            console.log('Erro ao deletar canal de lobby temporário:', error.message);
+                        }
+                    }
+                }
+                
                 const category = guild.channels.cache.get(updatedMatch.channels.category);
                 if (category) {
                     for (const child of category.children.cache.values()) {

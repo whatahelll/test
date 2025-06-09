@@ -42,7 +42,7 @@ module.exports = {
             return message.reply('Apenas os líderes dos times podem iniciar a partida!');
         }
 
-        const lobbyChannel = client.channels.cache.get('1367543346469404756');
+        const lobbyChannel = client.channels.cache.get(match.lobbyChannelId);
         if (!lobbyChannel) {
             return message.reply('Canal de lobby não encontrado!');
         }
@@ -134,6 +134,15 @@ module.exports = {
 
         delete match.startVote;
 
+        try {
+            console.log(`Deletando canal de lobby temporário: ${lobbyChannel.name} (${lobbyChannel.id})`);
+            await lobbyChannel.delete();
+            console.log('Canal de lobby temporário deletado com sucesso');
+            delete match.lobbyChannelId;
+        } catch (error) {
+            console.log('Erro ao deletar canal de lobby temporário:', error.message);
+        }
+
         fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
 
         console.log(`Partida ${match.id} iniciada, parando monitoramento de timeout`);
@@ -141,6 +150,6 @@ module.exports = {
             client.matchMonitor.stopMonitoringMatch(match.id);
         }
 
-        message.reply(`🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!`);
+        message.reply(`🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n🗑️ Canal de lobby temporário foi removido.`);
     }
 };

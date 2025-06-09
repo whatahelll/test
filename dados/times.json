@@ -14,9 +14,9 @@
     "roleId": "1381748305674895391",
     "createdAt": "2025-06-09T21:34:03.341Z",
     "stats": {
-      "victories": 0,
+      "victories": 1,
       "defeats": 0,
-      "matches": 0
+      "matches": 1
     }
   },
   "1749505196703": {
@@ -35,8 +35,8 @@
     "createdAt": "2025-06-09T21:39:56.703Z",
     "stats": {
       "victories": 0,
-      "defeats": 0,
-      "matches": 0
+      "defeats": 1,
+      "matches": 1
     }
   }
 }

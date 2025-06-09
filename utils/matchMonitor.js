@@ -42,7 +42,6 @@ class MatchMonitor {
         try {
             console.log(`Verificando timeout para partida ${matchId}`);
             
-            // Encontrar a guild através dos canais da partida
             let guild = null;
             
             if (match.channels && match.channels.general) {
@@ -55,10 +54,9 @@ class MatchMonitor {
                 }
             }
             
-            // Se não encontrou a guild pelos canais, tentar pelas guilds do bot
             if (!guild) {
                 console.log('Tentando encontrar guild através da lista de guilds do bot...');
-                guild = this.client.guilds.cache.first(); // Pega a primeira guild
+                guild = this.client.guilds.cache.first();
                 if (guild) {
                     console.log(`Usando primeira guild disponível: ${guild.name} (${guild.id})`);
                 } else {
@@ -93,7 +91,6 @@ class MatchMonitor {
 
             if (!team1 || !team2) {
                 console.log('Times não encontrados para a partida');
-                // Mesmo sem os times, vamos tentar deletar os canais
             }
 
             const embed = new EmbedBuilder()
@@ -101,7 +98,6 @@ class MatchMonitor {
                 .setDescription(`A partida ${team1 && team2 ? `entre **${team1.name}** ${team1.icon} e **${team2.name}** ${team2.icon}` : ''} foi cancelada automaticamente.\n\n**Motivo:** Os jogadores não entraram no lobby dentro de 2 minutos.`)
                 .setColor('#FF0000');
 
-            // Tentar enviar mensagem no canal geral da partida
             const generalChannel = guild.channels.cache.get(match.channels?.general);
             if (generalChannel) {
                 console.log('Enviando mensagem no canal geral da partida');
@@ -114,7 +110,6 @@ class MatchMonitor {
                 console.log('Canal geral da partida não encontrado');
             }
 
-            // Tentar enviar mensagem no canal de anúncios
             const announcementChannel = guild.channels.cache.find(channel => 
                 channel.name.includes('anuncio') || 
                 channel.name.includes('announce') || 
@@ -134,12 +129,25 @@ class MatchMonitor {
 
             console.log('Deletando canais da partida...');
             
-            // Deletar categoria e todos os canais filhos
+            if (match.lobbyChannelId) {
+                const lobbyChannel = guild.channels.cache.get(match.lobbyChannelId);
+                if (lobbyChannel) {
+                    try {
+                        console.log(`Deletando canal de lobby: ${lobbyChannel.name} (${lobbyChannel.id})`);
+                        await lobbyChannel.delete();
+                        console.log('Canal de lobby deletado com sucesso');
+                    } catch (error) {
+                        console.log('Erro ao deletar canal de lobby:', error.message);
+                    }
+                } else {
+                    console.log(`Canal de lobby não encontrado. ID: ${match.lobbyChannelId}`);
+                }
+            }
+
             const category = guild.channels.cache.get(match.channels?.category);
             if (category) {
                 console.log(`Categoria encontrada: ${category.name} (${category.id})`);
                 
-                // Primeiro deletar todos os canais filhos
                 const childChannels = category.children.cache;
                 console.log(`Encontrados ${childChannels.size} canais filhos para deletar`);
                 
@@ -153,7 +161,6 @@ class MatchMonitor {
                     }
                 }
                 
-                // Depois deletar a categoria
                 try {
                     console.log(`Deletando categoria: ${category.name} (${category.id})`);
                     await category.delete();
@@ -164,7 +171,6 @@ class MatchMonitor {
             } else {
                 console.log(`Categoria não encontrada. ID procurado: ${match.channels?.category}`);
                 
-                // Se a categoria não foi encontrada, tentar deletar canais individuais
                 if (match.channels) {
                     const channelIds = [
                         match.channels.voice1,
@@ -172,7 +178,7 @@ class MatchMonitor {
                         match.channels.text1,
                         match.channels.text2,
                         match.channels.general
-                    ].filter(id => id); // Remove IDs vazios
+                    ].filter(id => id);
                     
                     console.log(`Tentando deletar ${channelIds.length} canais individuais`);
                     
@@ -193,7 +199,6 @@ class MatchMonitor {
                 }
             }
 
-            // Remover partida dos dados
             delete matches[matchId];
             
             try {
@@ -259,7 +264,6 @@ class MatchMonitor {
                 return;
             }
 
-            // Encontrar guild através dos canais
             let guild = null;
             if (match.channels && match.channels.general) {
                 const generalChannel = this.client.channels.cache.get(match.channels.general);

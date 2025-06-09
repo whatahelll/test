@@ -65,7 +65,7 @@ module.exports = {
 
         console.log('Times encontrados:', team1.name, 'vs', team2.name);
 
-        const lobbyChannel = client.channels.cache.get('1367543346469404756');
+        const lobbyChannel = client.channels.cache.get(match.lobbyChannelId);
         if (!lobbyChannel) {
             console.log('Canal de lobby não encontrado');
             return message.reply('❌ Canal de lobby não encontrado!');
@@ -142,6 +142,15 @@ module.exports = {
             delete match.startVote;
         }
 
+        try {
+            console.log(`Deletando canal de lobby temporário: ${lobbyChannel.name} (${lobbyChannel.id})`);
+            await lobbyChannel.delete();
+            console.log('Canal de lobby temporário deletado com sucesso');
+            delete match.lobbyChannelId;
+        } catch (error) {
+            console.log('Erro ao deletar canal de lobby temporário:', error.message);
+        }
+
         matches[match.id] = match;
 
         try {
@@ -156,7 +165,7 @@ module.exports = {
             client.matchMonitor.stopMonitoringMatch(match.id);
         }
 
-        const responseMessage = `🔥 **PARTIDA INICIADA FORÇADAMENTE POR ADMIN!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n⚠️ **Aviso:** Este início foi forçado por ${message.author}, ignorando o mínimo de 4 jogadores por time.`;
+        const responseMessage = `🔥 **PARTIDA INICIADA FORÇADAMENTE POR ADMIN!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n⚠️ **Aviso:** Este início foi forçado por ${message.author}, ignorando o mínimo de 4 jogadores por time.\n\n🗑️ Canal de lobby temporário foi removido.`;
         
         console.log('Enviando resposta');
         message.reply(responseMessage);

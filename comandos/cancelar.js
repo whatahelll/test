@@ -57,6 +57,19 @@ module.exports = {
                 await announcementChannel.send({ embeds: [embed] });
             }
 
+            if (match.lobbyChannelId) {
+                const lobbyChannel = client.channels.cache.get(match.lobbyChannelId);
+                if (lobbyChannel) {
+                    try {
+                        console.log(`Deletando canal de lobby temporário: ${lobbyChannel.name} (${lobbyChannel.id})`);
+                        await lobbyChannel.delete();
+                        console.log('Canal de lobby temporário deletado');
+                    } catch (error) {
+                        console.log('Erro ao deletar canal de lobby temporário:', error.message);
+                    }
+                }
+            }
+
             const category = message.guild.channels.cache.get(match.channels.category);
             if (category) {
                 for (const child of category.children.cache.values()) {
