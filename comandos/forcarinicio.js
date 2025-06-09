@@ -151,6 +151,11 @@ module.exports = {
             console.error('Erro ao salvar:', error);
         }
 
+        console.log(`Partida ${match.id} iniciada forçadamente, parando monitoramento de timeout`);
+        if (client.matchMonitor) {
+            client.matchMonitor.stopMonitoringMatch(match.id);
+        }
+
         const responseMessage = `🔥 **PARTIDA INICIADA FORÇADAMENTE POR ADMIN!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n⚠️ **Aviso:** Este início foi forçado por ${message.author}, ignorando o mínimo de 4 jogadores por time.`;
         
         console.log('Enviando resposta');

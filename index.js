@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Collection, Events, Partials } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const MatchMonitor = require('./utils/matchMonitor');
 
 const client = new Client({
     intents: [
@@ -55,6 +56,16 @@ client.on(Events.MessageCreate, async message => {
         console.error(error);
         await message.reply('Erro ao executar o comando!');
     }
+});
+
+let matchMonitor;
+
+client.once(Events.ClientReady, () => {
+    console.log(`Bot online como ${client.user.tag}!`);
+    
+    matchMonitor = new MatchMonitor(client);
+    client.matchMonitor = matchMonitor;
+    console.log('Sistema de monitoramento de partidas iniciado');
 });
 
 client.login('x');

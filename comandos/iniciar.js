@@ -136,6 +136,11 @@ module.exports = {
 
         fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
 
+        console.log(`Partida ${match.id} iniciada, parando monitoramento de timeout`);
+        if (client.matchMonitor) {
+            client.matchMonitor.stopMonitoringMatch(match.id);
+        }
+
         message.reply(`🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!`);
     }
 };
