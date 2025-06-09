@@ -42,6 +42,23 @@ module.exports = {
             return message.reply('Apenas os líderes dos times podem iniciar a partida!');
         }
 
+        const lobbyChannel = client.channels.cache.get('1367543346469404756');
+        if (!lobbyChannel) {
+            return message.reply('Canal de lobby não encontrado!');
+        }
+
+        const membersInLobby = lobbyChannel.members;
+        const team1Members = membersInLobby.filter(member => member.roles.cache.has(team1.roleId));
+        const team2Members = membersInLobby.filter(member => member.roles.cache.has(team2.roleId));
+
+        if (team1Members.size < 4) {
+            return message.reply(`❌ O time **${team1.name}** ${team1.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team1Members.size}/4)\n❌ O time **${team2.name}** ${team2.icon} possui ${team2Members.size} jogadores no lobby.`);
+        }
+
+        if (team2Members.size < 4) {
+            return message.reply(`❌ O time **${team2.name}** ${team2.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team2Members.size}/4)\n❌ O time **${team1.name}** ${team1.icon} possui ${team1Members.size} jogadores no lobby.`);
+        }
+
         if (!match.startVote) {
             match.startVote = {
                 team1Ready: false,
@@ -52,16 +69,16 @@ module.exports = {
         }
 
         if (isTeam1Leader) {
-            if (match.startVote.team1Ready) {
-                return message.reply('O líder do seu time já confirmou o início!');
+            if (match.startVote.team1Ready && match.startVote.team1Leader === message.author.id) {
+                return message.reply('Você já confirmou o início! Aguardando confirmação do outro líder...');
             }
             match.startVote.team1Ready = true;
             match.startVote.team1Leader = message.author.id;
         }
 
         if (isTeam2Leader) {
-            if (match.startVote.team2Ready) {
-                return message.reply('O líder do seu time já confirmou o início!');
+            if (match.startVote.team2Ready && match.startVote.team2Leader === message.author.id) {
+                return message.reply('Você já confirmou o início! Aguardando confirmação do outro líder...');
             }
             match.startVote.team2Ready = true;
             match.startVote.team2Leader = message.author.id;
@@ -76,21 +93,12 @@ module.exports = {
             return message.reply(`**Confirmação de Início:**\n${team1Status} ${team1.name} ${team1.icon}\n${team2Status} ${team2.name} ${team2.icon}\n\n${match.startVote.team1Ready && match.startVote.team2Ready ? 'Ambos confirmaram!' : 'Aguardando confirmação do outro líder...'}`);
         }
 
-        const lobbyChannel = client.channels.cache.get('1367543346469404756');
-        if (!lobbyChannel) {
-            return message.reply('Canal de lobby não encontrado!');
-        }
-
         const voiceChannel1 = client.channels.cache.get(match.channels.voice1);
         const voiceChannel2 = client.channels.cache.get(match.channels.voice2);
 
         if (!voiceChannel1 || !voiceChannel2) {
             return message.reply('Canais de voz da partida não encontrados!');
         }
-
-        const membersInLobby = lobbyChannel.members;
-        const team1Members = membersInLobby.filter(member => member.roles.cache.has(team1.roleId));
-        const team2Members = membersInLobby.filter(member => member.roles.cache.has(team2.roleId));
 
         const team1Players = team1Members.first(4);
         const team2Players = team2Members.first(4);
