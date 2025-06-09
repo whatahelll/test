@@ -29,13 +29,64 @@ module.exports = {
         const team1 = teams[match.team1];
         const team2 = teams[match.team2];
 
-        if (message.author.id !== team1.leader && message.author.id !== team2.leader) {
+        if (!team1 || !team2) {
+            return message.reply('Erro: Times da partida não encontrados!');
+        }
+
+        const isTeam1Leader = (team1.leaders && team1.leaders.includes(message.author.id)) || 
+                             (team1.leader === message.author.id);
+        const isTeam2Leader = (team2.leaders && team2.leaders.includes(message.author.id)) || 
+                             (team2.leader === message.author.id);
+
+        if (!isTeam1Leader && !isTeam2Leader) {
             return message.reply('Apenas os líderes dos times podem iniciar a partida!');
         }
 
+        if (!match.startVote) {
+            match.startVote = {
+                team1Ready: false,
+                team2Ready: false,
+                team1Leader: null,
+                team2Leader: null
+            };
+        }
+
+        if (isTeam1Leader) {
+            if (match.startVote.team1Ready) {
+                return message.reply('O líder do seu time já confirmou o início!');
+            }
+            match.startVote.team1Ready = true;
+            match.startVote.team1Leader = message.author.id;
+        }
+
+        if (isTeam2Leader) {
+            if (match.startVote.team2Ready) {
+                return message.reply('O líder do seu time já confirmou o início!');
+            }
+            match.startVote.team2Ready = true;
+            match.startVote.team2Leader = message.author.id;
+        }
+
+        fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
+
+        if (!match.startVote.team1Ready || !match.startVote.team2Ready) {
+            const team1Status = match.startVote.team1Ready ? '✅' : '⏳';
+            const team2Status = match.startVote.team2Ready ? '✅' : '⏳';
+            
+            return message.reply(`**Confirmação de Início:**\n${team1Status} ${team1.name} ${team1.icon}\n${team2Status} ${team2.name} ${team2.icon}\n\n${match.startVote.team1Ready && match.startVote.team2Ready ? 'Ambos confirmaram!' : 'Aguardando confirmação do outro líder...'}`);
+        }
+
         const lobbyChannel = client.channels.cache.get('1367543346469404756');
+        if (!lobbyChannel) {
+            return message.reply('Canal de lobby não encontrado!');
+        }
+
         const voiceChannel1 = client.channels.cache.get(match.channels.voice1);
         const voiceChannel2 = client.channels.cache.get(match.channels.voice2);
+
+        if (!voiceChannel1 || !voiceChannel2) {
+            return message.reply('Canais de voz da partida não encontrados!');
+        }
 
         const membersInLobby = lobbyChannel.members;
         const team1Members = membersInLobby.filter(member => member.roles.cache.has(team1.roleId));
@@ -44,19 +95,24 @@ module.exports = {
         const team1Players = team1Members.first(4);
         const team2Players = team2Members.first(4);
 
+        let team1Moved = 0;
+        let team2Moved = 0;
+
         for (const member of team1Players) {
             try {
                 await member.voice.setChannel(voiceChannel1);
+                team1Moved++;
             } catch (error) {
-                console.log(`Erro ao mover ${member.user.username}`);
+                console.log(`Erro ao mover ${member.user.username}:`, error.message);
             }
         }
 
         for (const member of team2Players) {
             try {
                 await member.voice.setChannel(voiceChannel2);
+                team2Moved++;
             } catch (error) {
-                console.log(`Erro ao mover ${member.user.username}`);
+                console.log(`Erro ao mover ${member.user.username}:`, error.message);
             }
         }
 
@@ -66,8 +122,10 @@ module.exports = {
             team2: team2Players.map(m => m.id)
         };
 
+        delete match.startVote;
+
         fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
 
-        message.reply(`🔥 Partida iniciada! ${team1Players.size} jogadores do **${team1.name}** vs ${team2Players.size} jogadores do **${team2.name}**!`);
+        message.reply(`🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!`);
     }
 };

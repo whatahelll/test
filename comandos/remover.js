@@ -11,7 +11,16 @@ module.exports = {
             teams = {};
         }
 
-        const team = Object.values(teams).find(t => t.leader === message.author.id);
+        const team = Object.values(teams).find(t => {
+            if (t.leaders && Array.isArray(t.leaders)) {
+                return t.leaders.includes(message.author.id);
+            }
+            if (t.leader) {
+                return t.leader === message.author.id;
+            }
+            return false;
+        });
+
         if (!team) {
             return message.reply('Você não é líder de nenhum time!');
         }
@@ -21,16 +30,34 @@ module.exports = {
             return message.reply('Mencione um membro para remover!');
         }
 
+        if (!team.members || !Array.isArray(team.members)) {
+            team.members = [];
+        }
+
         if (!team.members.includes(member.id)) {
             return message.reply('Este membro não está no seu time!');
         }
 
-        if (member.id === team.leader) {
-            return message.reply('Você não pode remover a si mesmo!');
+        const isLeaderOrCreator = team.leaders?.includes(member.id) || team.creator === member.id;
+        if (isLeaderOrCreator && message.author.id !== team.creator) {
+            return message.reply('Apenas o criador do time pode remover líderes!');
+        }
+
+        if (member.id === message.author.id) {
+            return message.reply('Você não pode remover a si mesmo! Use `,sair` ou `,deletar`.');
         }
 
         team.members = team.members.filter(id => id !== member.id);
-        await member.roles.remove(team.roleId);
+        
+        if (team.leaders && team.leaders.includes(member.id)) {
+            team.leaders = team.leaders.filter(id => id !== member.id);
+        }
+
+        try {
+            await member.roles.remove(team.roleId);
+        } catch (error) {
+            console.log('Erro ao remover cargo do membro');
+        }
 
         fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
 
