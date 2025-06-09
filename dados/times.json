@@ -15,8 +15,8 @@
     "createdAt": "2025-06-09T19:32:30.301Z",
     "stats": {
       "victories": 0,
-      "defeats": 5,
-      "matches": 5
+      "defeats": 6,
+      "matches": 6
     },
     "prefix": "[IAM]"
   },
@@ -35,9 +35,9 @@
     "roleId": "1381719664790343763",
     "createdAt": "2025-06-09T19:40:14.660Z",
     "stats": {
-      "victories": 5,
+      "victories": 6,
       "defeats": 0,
-      "matches": 5
+      "matches": 6
     },
     "prefix": "[teste]"
   }

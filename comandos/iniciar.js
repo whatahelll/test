@@ -52,11 +52,11 @@ module.exports = {
         const team2Members = membersInLobby.filter(member => member.roles.cache.has(team2.roleId));
 
         if (team1Members.size < 4) {
-            return message.reply(`❌ O time **${team1.name}** ${team1.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team1Members.size}/4)\n❌ O time **${team2.name}** ${team2.icon} possui ${team2Members.size} jogadores no lobby.`);
+            return message.reply(`❌ O time **${team1.name}** ${team1.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team1Members.size}/4)\n✅ O time **${team2.name}** ${team2.icon} possui ${team2Members.size} jogadores no lobby.`);
         }
 
         if (team2Members.size < 4) {
-            return message.reply(`❌ O time **${team2.name}** ${team2.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team2Members.size}/4)\n❌ O time **${team1.name}** ${team1.icon} possui ${team1Members.size} jogadores no lobby.`);
+            return message.reply(`❌ O time **${team2.name}** ${team2.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team2Members.size}/4)\n✅ O time **${team1.name}** ${team1.icon} possui ${team1Members.size} jogadores no lobby.`);
         }
 
         if (!match.startVote) {
@@ -90,7 +90,7 @@ module.exports = {
             const team1Status = match.startVote.team1Ready ? '✅' : '⏳';
             const team2Status = match.startVote.team2Ready ? '✅' : '⏳';
             
-            return message.reply(`**Confirmação de Início:**\n${team1Status} ${team1.name} ${team1.icon}\n${team2Status} ${team2.name} ${team2.icon}\n\n${match.startVote.team1Ready && match.startVote.team2Ready ? 'Ambos confirmaram!' : 'Aguardando confirmação do outro líder...'}`);
+            return message.reply(`**Confirmação de Início:**\n${team1Status} ${team1.name} ${team1.icon} (${team1Members.size} jogadores)\n${team2Status} ${team2.name} ${team2.icon} (${team2Members.size} jogadores)\n\n${match.startVote.team1Ready && match.startVote.team2Ready ? 'Ambos confirmaram!' : 'Aguardando confirmação do outro líder...'}`);
         }
 
         const voiceChannel1 = client.channels.cache.get(match.channels.voice1);
@@ -129,6 +129,8 @@ module.exports = {
             team1: team1Players.map(m => m.id),
             team2: team2Players.map(m => m.id)
         };
+
+        match.startedAt = new Date().toISOString();
 
         delete match.startVote;
 

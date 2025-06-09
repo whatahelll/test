@@ -134,6 +134,10 @@ module.exports = {
             team2: team2Players.map(m => m.id)
         };
 
+        match.startedAt = new Date().toISOString();
+        match.forcedStart = true;
+        match.forcedBy = message.author.id;
+
         if (match.startVote) {
             delete match.startVote;
         }

@@ -38,6 +38,13 @@ function saveData() {
     }
 }
 
+function isTeamInMatch(teamId) {
+    return Object.values(matches).some(match => 
+        (match.team1 === teamId || match.team2 === teamId) && 
+        (match.status === 'aguardando_jogadores' || match.status === 'em_andamento' || match.status === 'votando_vencedor')
+    );
+}
+
 async function safeReply(interaction, content) {
     try {
         if (interaction.replied || interaction.deferred) {
@@ -55,6 +62,112 @@ async function safeReply(interaction, content) {
             console.error('Erro no fallback de resposta:', fallbackError);
         }
     }
+}
+
+async function cancelMatchAfterTimeout(matchId, client) {
+    console.log(`Iniciando timeout para partida ${matchId}`);
+    
+    const checkInterval = setInterval(async () => {
+        loadData();
+        const match = matches[matchId];
+        
+        if (!match) {
+            console.log(`Partida ${matchId} não encontrada, cancelando verificação`);
+            clearInterval(checkInterval);
+            return;
+        }
+
+        if (match.status !== 'aguardando_jogadores') {
+            console.log(`Partida ${matchId} mudou de status para ${match.status}, cancelando verificação`);
+            clearInterval(checkInterval);
+            return;
+        }
+
+        console.log(`Verificando partida ${matchId}...`);
+        
+        try {
+            const guild = client.guilds.cache.get('1336151112653869147');
+            if (!guild) {
+                console.log('Guild não encontrada');
+                clearInterval(checkInterval);
+                return;
+            }
+
+            const lobbyChannel = guild.channels.cache.get('1367543346469404756');
+            if (!lobbyChannel) {
+                console.log('Canal de lobby não encontrado');
+                clearInterval(checkInterval);
+                return;
+            }
+
+            const team1 = teams[match.team1];
+            const team2 = teams[match.team2];
+
+            if (!team1 || !team2) {
+                console.log('Times não encontrados');
+                clearInterval(checkInterval);
+                return;
+            }
+
+            const membersInLobby = lobbyChannel.members;
+            const team1Members = membersInLobby.filter(member => member.roles.cache.has(team1.roleId));
+            const team2Members = membersInLobby.filter(member => member.roles.cache.has(team2.roleId));
+
+            console.log(`Jogadores no lobby - Team1: ${team1Members.size}, Team2: ${team2Members.size}`);
+
+            const createdTime = new Date(match.createdAt).getTime();
+            const currentTime = new Date().getTime();
+            const timeElapsed = currentTime - createdTime;
+
+            if (timeElapsed >= 120000) {
+                console.log(`2 minutos se passaram para partida ${matchId}, cancelando...`);
+                
+                const embed = new EmbedBuilder()
+                    .setTitle('⏰ PARTIDA CANCELADA POR TIMEOUT')
+                    .setDescription(`A partida entre **${team1.name}** ${team1.icon} e **${team2.name}** ${team2.icon} foi cancelada automaticamente.\n\n**Motivo:** Os jogadores não entraram no lobby dentro de 2 minutos.`)
+                    .setColor('#FF0000');
+
+                const generalChannel = guild.channels.cache.get(match.channels?.general);
+                if (generalChannel) {
+                    await generalChannel.send({ embeds: [embed] });
+                }
+
+                const announcementChannel = guild.channels.cache.get('1381722215812169910');
+                if (announcementChannel) {
+                    await announcementChannel.send({ embeds: [embed] });
+                }
+
+                const category = guild.channels.cache.get(match.channels?.category);
+                if (category) {
+                    for (const child of category.children.cache.values()) {
+                        try {
+                            await child.delete();
+                        } catch (error) {
+                            console.log('Erro ao deletar canal:', error);
+                        }
+                    }
+                    try {
+                        await category.delete();
+                    } catch (error) {
+                        console.log('Erro ao deletar categoria:', error);
+                    }
+                }
+
+                delete matches[matchId];
+                saveData();
+
+                console.log(`Partida ${matchId} cancelada por timeout`);
+                clearInterval(checkInterval);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar partida:', error);
+        }
+    }, 10000);
+
+    setTimeout(() => {
+        clearInterval(checkInterval);
+        console.log(`Timeout final para partida ${matchId}`);
+    }, 130000);
 }
 
 loadData();
@@ -137,9 +250,21 @@ module.exports = {
                     return await safeReply(interaction, { content: 'Você não é líder de nenhum time!', flags: 64 });
                 }
 
+                if (isTeamInMatch(challengerTeam.id)) {
+                    return await safeReply(interaction, { content: 'Seu time já está em uma partida! Finalize antes de desafiar outros times.', flags: 64 });
+                }
+
                 const targetTeam = teams[targetTeamId];
                 if (!targetTeam) {
                     return await safeReply(interaction, { content: 'Time não encontrado!', flags: 64 });
+                }
+
+                if (isTeamInMatch(targetTeamId)) {
+                    return await safeReply(interaction, { content: 'Este time já está em uma partida! Tente novamente mais tarde.', flags: 64 });
+                }
+
+                if (challengerTeam.id === targetTeamId) {
+                    return await safeReply(interaction, { content: 'Você não pode desafiar seu próprio time!', flags: 64 });
                 }
 
                 const embed = new EmbedBuilder()
@@ -176,6 +301,14 @@ module.exports = {
                     return await safeReply(interaction, { content: 'Times não encontrados!', flags: 64 });
                 }
 
+                if (isTeamInMatch(challengerTeamId)) {
+                    return await safeReply(interaction, { content: 'O time desafiante já está em uma partida!', flags: 64 });
+                }
+
+                if (isTeamInMatch(targetTeamId)) {
+                    return await safeReply(interaction, { content: 'Seu time já está em uma partida!', flags: 64 });
+                }
+
                 const targetLeaderId = targetTeam.leaders && Array.isArray(targetTeam.leaders) 
                     ? targetTeam.leaders[0] 
                     : targetTeam.leader;
@@ -196,7 +329,8 @@ module.exports = {
                     team1: challengerTeamId,
                     team2: targetTeamId,
                     status: 'preparando',
-                    channels: {}
+                    channels: {},
+                    createdAt: new Date().toISOString()
                 };
 
                 const guild = interaction.guild;
@@ -303,13 +437,16 @@ module.exports = {
 
                     const embed = new EmbedBuilder()
                         .setTitle('🔥 PARTIDA INICIADA! 🔥')
-                        .setDescription(`**${challengerTeam.name}** ${challengerTeam.icon} VS **${targetTeam.name}** ${targetTeam.icon}\n\nTodos os jogadores devem entrar no canal <#1367543346469404756> para serem movidos automaticamente!\n\nUse \`,iniciar\` para mover os jogadores quando estiverem prontos.`)
+                        .setDescription(`**${challengerTeam.name}** ${challengerTeam.icon} VS **${targetTeam.name}** ${targetTeam.icon}\n\nTodos os jogadores devem entrar no canal <#1367543346469404756> para serem movidos automaticamente!\n\nUse \`,iniciar\` para mover os jogadores quando estiverem prontos.\n\n⏰ **ATENÇÃO:** A partida será cancelada automaticamente em 2 minutos se não for iniciada!`)
                         .setColor('#00FF00');
 
                     await generalChannel.send({ embeds: [embed] });
                     
                     matches[matchId].status = 'aguardando_jogadores';
                     saveData();
+
+                    console.log(`Partida ${matchId} criada, iniciando sistema de timeout`);
+                    cancelMatchAfterTimeout(matchId, interaction.client);
 
                     try {
                         await interaction.editReply({ content: '✅ Desafio aceito! Canais criados com sucesso!' });
@@ -582,19 +719,19 @@ module.exports = {
                     };
 
                     await interaction.member.roles.add(role);
-                    saveData();
+                   saveData();
 
-                    const embed = new EmbedBuilder()
-                        .setTitle(`${icone} Time ${nome} criado!`)
-                        .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
-                        .setColor(hexColor);
+                   const embed = new EmbedBuilder()
+                       .setTitle(`${icone} Time ${nome} criado!`)
+                       .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
+                       .setColor(hexColor);
 
-                    await safeReply(interaction, { embeds: [embed], flags: 64 });
-                } catch (error) {
-                    console.error(error);
-                    await safeReply(interaction, { content: 'Erro ao criar o time!', flags: 64 });
-                }
-            }
-        }
-    }
+                   await safeReply(interaction, { embeds: [embed], flags: 64 });
+               } catch (error) {
+                   console.error(error);
+                   await safeReply(interaction, { content: 'Erro ao criar o time!', flags: 64 });
+               }
+           }
+       }
+   }
 };

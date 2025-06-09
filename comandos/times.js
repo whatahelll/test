@@ -13,9 +13,33 @@ module.exports = {
             teams = {};
         }
 
+        let matches = {};
+        try {
+            matches = JSON.parse(fs.readFileSync('./dados/partidas.json', 'utf8'));
+        } catch (error) {
+            matches = {};
+        }
+
         if (Object.keys(teams).length === 0) {
             return message.reply('Nenhum time foi criado ainda!');
         }
+
+        function isTeamInMatch(teamId) {
+            return Object.values(matches).some(match => 
+                (match.team1 === teamId || match.team2 === teamId) && 
+                (match.status === 'aguardando_jogadores' || match.status === 'em_andamento' || match.status === 'votando_vencedor')
+            );
+        }
+
+        const userTeam = Object.values(teams).find(t => {
+            if (t.leaders && Array.isArray(t.leaders)) {
+                return t.leaders.includes(message.author.id);
+            }
+            if (t.leader) {
+                return t.leader === message.author.id;
+            }
+            return false;
+        });
 
         const embed = new EmbedBuilder()
             .setTitle('🔥 Times Free Fire 🔥')
@@ -40,15 +64,24 @@ module.exports = {
                     leaderInfo = leader.username;
                 }
 
-                description += `${team.icon} **${team.name}**\n`;
+                const teamInMatch = isTeamInMatch(team.id);
+                const statusEmoji = teamInMatch ? '⚔️' : '';
+                
+                description += `${team.icon} **${team.name}** ${statusEmoji}\n`;
                 description += `Líder: ${leaderInfo}\n`;
                 description += `Membros: ${team.members?.length || 0}\n`;
-                description += `V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n\n`;
+                description += `V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n`;
+                if (teamInMatch) {
+                    description += `🔴 **Em partida**\n`;
+                }
+                description += '\n';
 
-                const userIsLeader = (team.leaders && team.leaders.includes(message.author.id)) || 
-                                   (team.leader === message.author.id);
+                const userIsLeaderOfThisTeam = (team.leaders && team.leaders.includes(message.author.id)) || 
+                                              (team.leader === message.author.id);
 
-                if (!userIsLeader && buttons.length < 5) {
+                const userTeamInMatch = userTeam ? isTeamInMatch(userTeam.id) : false;
+
+                if (!userIsLeaderOfThisTeam && userTeam && !teamInMatch && !userTeamInMatch && buttons.length < 5) {
                     buttons.push(
                         new ButtonBuilder()
                             .setCustomId(`desafiar_${team.id}`)
@@ -72,6 +105,13 @@ module.exports = {
         const components = [];
         if (buttons.length > 0) {
             components.push(new ActionRowBuilder().addComponents(buttons));
+        } else if (userTeam) {
+            const userTeamInMatch = isTeamInMatch(userTeam.id);
+            if (userTeamInMatch) {
+                embed.setFooter({ text: 'Seu time está em uma partida! Finalize antes de desafiar outros times.' });
+            } else {
+                embed.setFooter({ text: 'Você não pode desafiar seu próprio time ou times que estão em partida!' });
+            }
         }
 
         message.reply({ embeds: [embed], components });
