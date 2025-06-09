@@ -30,21 +30,16 @@ module.exports = {
             return message.reply('Mencione um membro para remover!');
         }
 
-        if (!team.members || !Array.isArray(team.members)) {
-            team.members = [];
-        }
-
         if (!team.members.includes(member.id)) {
             return message.reply('Este membro não está no seu time!');
         }
 
-        const isLeaderOrCreator = team.leaders?.includes(member.id) || team.creator === member.id;
-        if (isLeaderOrCreator && message.author.id !== team.creator) {
-            return message.reply('Apenas o criador do time pode remover líderes!');
+        if (team.leaders && team.leaders.includes(member.id)) {
+            return message.reply('Você não pode remover um líder! Use `,rebaixar` primeiro.');
         }
 
-        if (member.id === message.author.id) {
-            return message.reply('Você não pode remover a si mesmo! Use `,sair` ou `,deletar`.');
+        if (member.id === team.creator) {
+            return message.reply('Você não pode remover o criador do time!');
         }
 
         team.members = team.members.filter(id => id !== member.id);
@@ -55,8 +50,17 @@ module.exports = {
 
         try {
             await member.roles.remove(team.roleId);
+            
+            if (team.prefix && member.nickname && member.nickname.startsWith(team.prefix)) {
+                const newNickname = member.nickname.replace(team.prefix, '').trim();
+                if (newNickname === member.user.username) {
+                    await member.setNickname(null);
+                } else {
+                    await member.setNickname(newNickname);
+                }
+            }
         } catch (error) {
-            console.log('Erro ao remover cargo do membro');
+            console.log('Erro ao remover cargo ou nickname:', error.message);
         }
 
         fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));

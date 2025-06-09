@@ -23,6 +23,7 @@ function loadData() {
     } catch (error) {
         invites = {};
     }
+    console.log('Dados carregados. Convites:', Object.keys(invites));
 }
 
 function saveData() {
@@ -31,6 +32,7 @@ function saveData() {
         fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
         fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
         fs.writeFileSync('./dados/convites.json', JSON.stringify(invites, null, 2));
+        console.log('Dados salvos com sucesso');
     } catch (error) {
         console.error('Erro ao salvar dados:', error);
     }
@@ -44,6 +46,8 @@ module.exports = {
         loadData();
 
         if (interaction.isButton()) {
+            console.log('Button clicked:', interaction.customId);
+
             if (interaction.customId === 'criar_time') {
                 const userHasTeam = Object.values(teams).find(team => {
                     if (team.leaders && Array.isArray(team.leaders)) {
@@ -137,8 +141,6 @@ module.exports = {
             }
 
             if (interaction.customId.startsWith('aceitar_desafio_')) {
-                await interaction.deferReply({ flags: 64 });
-
                 const parts = interaction.customId.split('_');
                 const challengerTeamId = parts[2];
                 const targetTeamId = parts[3];
@@ -147,14 +149,15 @@ module.exports = {
                 const targetTeam = teams[targetTeamId];
 
                 if (!challengerTeam || !targetTeam) {
-                    return interaction.editReply({ content: 'Times não encontrados!' });
+                    return interaction.reply({ content: 'Times não encontrados!', flags: 64 });
                 }
 
-                const isTargetLeader = (targetTeam.leaders && targetTeam.leaders.includes(interaction.user.id)) || 
-                                     (targetTeam.leader === interaction.user.id);
+                const targetLeaderId = targetTeam.leaders && Array.isArray(targetTeam.leaders) 
+                    ? targetTeam.leaders[0] 
+                    : targetTeam.leader;
                 
-                if (!isTargetLeader) {
-                    return interaction.editReply({ content: 'Apenas o líder do time pode aceitar desafios!' });
+                if (targetLeaderId !== interaction.user.id) {
+                    return interaction.reply({ content: 'Apenas o líder do time pode aceitar desafios!', flags: 64 });
                 }
 
                 const matchId = Date.now().toString();
@@ -175,87 +178,89 @@ module.exports = {
                         type: ChannelType.GuildCategory
                     });
 
-                    const [voiceChannel1, voiceChannel2, textChannel1, textChannel2, generalChannel] = await Promise.all([
-                        guild.channels.create({
-                            name: `🔊 ${challengerTeam.name}`,
-                            type: ChannelType.GuildVoice,
-                            parent: category.id,
-                            permissionOverwrites: [
-                                {
-                                    id: guild.id,
-                                    deny: [PermissionFlagsBits.ViewChannel]
-                                },
-                                {
-                                    id: challengerTeam.roleId,
-                                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect]
-                                }
-                            ]
-                        }),
-                        guild.channels.create({
-                            name: `🔊 ${targetTeam.name}`,
-                            type: ChannelType.GuildVoice,
-                            parent: category.id,
-                            permissionOverwrites: [
-                                {
-                                    id: guild.id,
-                                    deny: [PermissionFlagsBits.ViewChannel]
-                                },
-                                {
-                                    id: targetTeam.roleId,
-                                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect]
-                                }
-                            ]
-                        }),
-                        guild.channels.create({
-                            name: `💬-${challengerTeam.name.toLowerCase()}`,
-                            type: ChannelType.GuildText,
-                            parent: category.id,
-                            permissionOverwrites: [
-                                {
-                                    id: guild.id,
-                                    deny: [PermissionFlagsBits.ViewChannel]
-                                },
-                                {
-                                    id: challengerTeam.roleId,
-                                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                                }
-                            ]
-                        }),
-                        guild.channels.create({
-                            name: `💬-${targetTeam.name.toLowerCase()}`,
-                            type: ChannelType.GuildText,
-                            parent: category.id,
-                            permissionOverwrites: [
-                                {
-                                    id: guild.id,
-                                    deny: [PermissionFlagsBits.ViewChannel]
-                                },
-                                {
-                                    id: targetTeam.roleId,
-                                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                                }
-                            ]
-                        }),
-                        guild.channels.create({
-                            name: '⚔️-geral-partida',
-                            type: ChannelType.GuildText,
-                            parent: category.id,
-                            permissionOverwrites: [
-                                {
-                                    id: guild.id,
-                                    deny: [PermissionFlagsBits.ViewChannel]
-                                },
-                                {
-                                    id: challengerTeam.roleId,
-                                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                                },
-                                {
-                                    id: targetTeam.roleId,
-                                    allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                                }
-                            ]
-                        })
-                    ]);
+                    const voiceChannel1 = await guild.channels.create({
+                        name: `🔊 ${challengerTeam.name}`,
+                        type: ChannelType.GuildVoice,
+                        parent: category.id,
+                        permissionOverwrites: [
+                            {
+                                id: guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            },
+                            {
+                                id: challengerTeam.roleId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect]
+                            }
+                        ]
+                    });
+
+                    const voiceChannel2 = await guild.channels.create({
+                        name: `🔊 ${targetTeam.name}`,
+                        type: ChannelType.GuildVoice,
+                        parent: category.id,
+                        permissionOverwrites: [
+                            {
+                                id: guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            },
+                            {
+                                id: targetTeam.roleId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect]
+                            }
+                        ]
+                    });
+
+                    const textChannel1 = await guild.channels.create({
+                        name: `💬-${challengerTeam.name.toLowerCase()}`,
+                        type: ChannelType.GuildText,
+                        parent: category.id,
+                        permissionOverwrites: [
+                            {
+                                id: guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            },
+                            {
+                                id: challengerTeam.roleId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+                            }
+                        ]
+                    });
+
+                    const textChannel2 = await guild.channels.create({
+                        name: `💬-${targetTeam.name.toLowerCase()}`,
+                        type: ChannelType.GuildText,
+                        parent: category.id,
+                        permissionOverwrites: [
+                            {
+                                id: guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            },
+                            {
+                                id: targetTeam.roleId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+                            }
+                        ]
+                    });
+
+                    const generalChannel = await guild.channels.create({
+                        name: '⚔️-geral-partida',
+                        type: ChannelType.GuildText,
+                        parent: category.id,
+                        permissionOverwrites: [
+                            {
+                                id: guild.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            },
+                            {
+                                id: challengerTeam.roleId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+                            },
+                            {
+                                id: targetTeam.roleId,
+                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+                            }
+                        ]
+                    });
 
                     matches[matchId].channels = {
                         category: category.id,
@@ -268,7 +273,7 @@ module.exports = {
 
                     const embed = new EmbedBuilder()
                         .setTitle('🔥 PARTIDA INICIADA! 🔥')
-                        .setDescription(`**${challengerTeam.name}** ${challengerTeam.icon} VS **${targetTeam.name}** ${targetTeam.icon}\n\nTodos os jogadores devem entrar no canal <#1367543346469404756> para serem movidos automaticamente!\n\nAmbos os líderes devem usar \`,iniciar\` para confirmar o início da partida.`)
+                        .setDescription(`**${challengerTeam.name}** ${challengerTeam.icon} VS **${targetTeam.name}** ${targetTeam.icon}\n\nTodos os jogadores devem entrar no canal <#1367543346469404756> para serem movidos automaticamente!\n\nUse \`,iniciar\` para mover os jogadores quando estiverem prontos.`)
                         .setColor('#00FF00');
 
                     await generalChannel.send({ embeds: [embed] });
@@ -276,11 +281,11 @@ module.exports = {
                     matches[matchId].status = 'aguardando_jogadores';
                     saveData();
 
-                    await interaction.editReply({ content: '✅ Desafio aceito! Canais criados com sucesso!' });
+                    interaction.reply({ content: '✅ Desafio aceito! Canais criados com sucesso!', flags: 64 });
 
                 } catch (error) {
                     console.error('Erro ao criar canais:', error);
-                    await interaction.editReply({ content: 'Erro ao criar canais da partida!' });
+                    interaction.reply({ content: 'Erro ao criar canais da partida!', flags: 64 });
                 }
             }
 
@@ -292,32 +297,42 @@ module.exports = {
                 const challengerTeam = teams[challengerTeamId];
                 const targetTeam = teams[targetTeamId];
 
-                const isTargetLeader = (targetTeam?.leaders && targetTeam.leaders.includes(interaction.user.id)) || 
-                                     (targetTeam?.leader === interaction.user.id);
+                const targetLeaderId = targetTeam?.leaders && Array.isArray(targetTeam.leaders) 
+                    ? targetTeam.leaders[0] 
+                    : targetTeam?.leader;
                 
-                if (!isTargetLeader) {
+                if (targetLeaderId !== interaction.user.id) {
                     return interaction.reply({ content: 'Apenas o líder do time pode recusar desafios!', flags: 64 });
                 }
 
-                await interaction.reply({ content: `❌ ${interaction.user} recusou o desafio do time **${challengerTeam?.name}**!` });
+                interaction.reply({ content: `❌ ${interaction.user} recusou o desafio do time **${challengerTeam?.name}**!` });
             }
 
             if (interaction.customId.startsWith('aceitar_convite_')) {
+                console.log('Aceitar convite clicked');
+                console.log('Full customId:', interaction.customId);
+                
                 const fullCustomId = interaction.customId;
                 const inviteId = fullCustomId.replace('aceitar_convite_', '');
+                console.log('Extracted inviteId:', inviteId);
+                console.log('Available invites:', Object.keys(invites));
                 
                 const invite = invites[inviteId];
+                console.log('Found invite:', invite);
                 
                 if (!invite || invite.status !== 'pendente') {
+                    console.log('Invite not found or not pending');
                     return interaction.reply({ content: 'Convite não encontrado ou já processado!', flags: 64 });
                 }
 
                 if (invite.userId !== interaction.user.id) {
+                    console.log('Wrong user trying to accept');
                     return interaction.reply({ content: 'Este convite não é para você!', flags: 64 });
                 }
 
                 const team = teams[invite.teamId];
                 if (!team) {
+                    console.log('Team not found');
                     invite.status = 'expirado';
                     saveData();
                     return interaction.reply({ content: 'Time não encontrado! O convite expirou.', flags: 64 });
@@ -342,6 +357,18 @@ module.exports = {
                     team.members.push(interaction.user.id);
                     await member.roles.add(team.roleId);
                     
+                    if (team.prefix) {
+                        const currentNick = member.nickname || member.user.username;
+                        const newNickname = `${team.prefix}${currentNick}`;
+                        if (newNickname.length <= 32) {
+                            try {
+                                await member.setNickname(newNickname);
+                            } catch (error) {
+                                console.log('Erro ao definir nickname:', error.message);
+                            }
+                        }
+                    }
+                    
                     invite.status = 'aceito';
                     saveData();
 
@@ -362,13 +389,16 @@ module.exports = {
 
                 } catch (error) {
                     console.error('Error processing invite:', error);
-                    await interaction.reply({ content: 'Erro ao processar convite!', flags: 64 });
+                    interaction.reply({ content: 'Erro ao processar convite!', flags: 64 });
                 }
             }
 
             if (interaction.customId.startsWith('recusar_convite_')) {
+                console.log('Recusar convite clicked');
+                
                 const fullCustomId = interaction.customId;
                 const inviteId = fullCustomId.replace('recusar_convite_', '');
+                console.log('Extracted inviteId:', inviteId);
                 
                 const invite = invites[inviteId];
                 
@@ -429,274 +459,180 @@ module.exports = {
                     match.finishVote.no.push(interaction.user.id);
                 }
 
-                saveData();
-
-                await interaction.reply({ content: `Voto registrado! (${match.finishVote.yes.length} sim / ${match.finishVote.no.length} não)`, flags: 64 });
-            }
-
-            if (interaction.customId.startsWith('vencedor_')) {
-                const parts = interaction.customId.split('_');
-                const winnerTeamId = parts[1];
-                const matchId = parts[2];
+                const totalVotes = match.finishVote.yes.length + match.finishVote.no.length;
                 
-                const match = matches[matchId];
-                if (!match || !match.winnerVote) {
-                    return interaction.reply({ content: 'Votação não encontrada!', flags: 64 });
-                }
+                if (match.finishVote.yes.length >= match.finishVote.requiredVotes) {
+                    const team1 = teams[match.team1];
+                    const team2 = teams[match.team2];
 
-                if (!match.players || !match.players.team1 || !match.players.team2) {
-                    return interaction.reply({ content: 'Dados da partida incompletos!', flags: 64 });
-                }
+                    const embed = new EmbedBuilder()
+                        .setTitle('🏆 Qual time ganhou?')
+                        .setDescription(`**${team1.name}** ${team1.icon} VS **${team2.name}** ${team2.icon}`)
+                        .setColor('#FFD700');
 
-                const allPlayers = [...match.players.team1, ...match.players.team2];
-                if (!allPlayers.includes(interaction.user.id)) {
-                    return interaction.reply({ content: 'Apenas jogadores da partida podem votar!', flags: 64 });
-                }
+                    const row = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`vencedor_${match.team1}_${matchId}`)
+                                .setLabel(`${team1.name} ${team1.icon}`)
+                                .setStyle(ButtonStyle.Primary),
+                            new ButtonBuilder()
+                                .setCustomId(`vencedor_${match.team2}_${matchId}`)
+                                .setLabel(`${team2.name} ${team2.icon}`)
+                                .setStyle(ButtonStyle.Primary)
+                        );
 
-                if (match.winnerVote.team1Votes.includes(interaction.user.id) || match.winnerVote.team2Votes.includes(interaction.user.id)) {
-                    return interaction.reply({ content: 'Você já votou!', flags: 64 });
-                }
+                    const channel = interaction.client.channels.cache.get(match.channels.general);
+                    if (channel) {
+                        const voteMessage = await channel.send({ embeds: [embed], components: [row] });
 
-                if (winnerTeamId === match.team1) {
-                    match.winnerVote.team1Votes.push(interaction.user.id);
-                } else {
-                    match.winnerVote.team2Votes.push(interaction.user.id);
-                }
+                        match.winnerVote = {
+                            messageId: voteMessage.id,
+                            team1Votes: [],
+                           team2Votes: [],
+                           requiredVotes: Math.ceil(allPlayers.length / 2)
+                       };
+                       
+                       match.status = 'votando_vencedor';
+                       saveData();
 
-                saveData();
+                       interaction.reply({ content: 'Partida finalizada! Votação do vencedor iniciada.', flags: 64 });
+                   } else {
+                       interaction.reply({ content: 'Erro: Canal da partida não encontrado!', flags: 64 });
+                   }
+               } else {
+                   saveData();
+                   interaction.reply({ content: `Voto registrado! (${match.finishVote.yes.length}/${match.finishVote.requiredVotes} votos para finalizar)`, flags: 64 });
+               }
+           }
 
-                const team1Votes = match.winnerVote.team1Votes.length;
-                const team2Votes = match.winnerVote.team2Votes.length;
-
-                await interaction.reply({ content: `Voto registrado! Time 1: ${team1Votes} | Time 2: ${team2Votes}`, flags: 64 });
-            }
-        }
-
-        if (interaction.isModalSubmit()) {
-            if (interaction.customId === 'modal_criar_time') {
-                const nome = interaction.fields.getTextInputValue('nome_time');
-                const corRGB = interaction.fields.getTextInputValue('cor_time');
-                const icone = interaction.fields.getTextInputValue('icone_time');
-
-                const rgbArray = corRGB.split(',').map(num => parseInt(num.trim()));
-                if (rgbArray.length !== 3 || rgbArray.some(num => isNaN(num) || num < 0 || num > 255)) {
-                    return interaction.reply({ content: 'Formato de cor inválido! Use: 255,0,0', flags: 64 });
+           if (interaction.customId.startsWith('vencedor_')) {
+               const parts = interaction.customId.split('_');
+               const winnerTeamId = parts[1];
+               const matchId = parts[2];
+               
+               const match = matches[matchId];
+               if (!match || !match.winnerVote) {
+                   return interaction.reply({ content: 'Votação não encontrada!', flags: 64 });
                }
 
-               const hexColor = `#${rgbArray.map(num => num.toString(16).padStart(2, '0')).join('')}`;
+               if (!match.players || !match.players.team1 || !match.players.team2) {
+                   return interaction.reply({ content: 'Dados da partida incompletos!', flags: 64 });
+               }
 
-               try {
-                   const role = await interaction.guild.roles.create({
-                       name: nome,
-                       color: hexColor,
-                       reason: 'Criação de time Free Fire'
-                   });
+               const allPlayers = [...match.players.team1, ...match.players.team2];
+               if (!allPlayers.includes(interaction.user.id)) {
+                   return interaction.reply({ content: 'Apenas jogadores da partida podem votar!', flags: 64 });
+               }
 
-                   const teamId = Date.now().toString();
-                   teams[teamId] = {
-                       id: teamId,
-                       name: nome,
-                       color: hexColor,
-                       icon: icone,
-                       creator: interaction.user.id,
-                       leaders: [interaction.user.id],
-                       members: [interaction.user.id],
-                       roleId: role.id,
-                       createdAt: new Date().toISOString(),
-                       stats: {
-                           victories: 0,
-                           defeats: 0,
-                           matches: 0
+               if (match.winnerVote.team1Votes.includes(interaction.user.id) || match.winnerVote.team2Votes.includes(interaction.user.id)) {
+                   return interaction.reply({ content: 'Você já votou!', flags: 64 });
+               }
+
+               if (winnerTeamId === match.team1) {
+                   match.winnerVote.team1Votes.push(interaction.user.id);
+               } else {
+                   match.winnerVote.team2Votes.push(interaction.user.id);
+               }
+
+               const team1Votes = match.winnerVote.team1Votes.length;
+               const team2Votes = match.winnerVote.team2Votes.length;
+
+               if (team1Votes >= match.winnerVote.requiredVotes || team2Votes >= match.winnerVote.requiredVotes) {
+                   const finalWinnerTeamId = team1Votes > team2Votes ? match.team1 : match.team2;
+                   const loserTeamId = finalWinnerTeamId === match.team1 ? match.team2 : match.team1;
+
+                   const winnerTeam = teams[finalWinnerTeamId];
+                   const loserTeam = teams[loserTeamId];
+
+                   if (winnerTeam && loserTeam) {
+                       winnerTeam.stats.victories++;
+                       winnerTeam.stats.matches++;
+                       loserTeam.stats.defeats++;
+                       loserTeam.stats.matches++;
+
+                       try {
+                           const guild = interaction.guild;
+                           const category = guild.channels.cache.get(match.channels.category);
+                           if (category) {
+                               for (const child of category.children.cache.values()) {
+                                   await child.delete();
+                               }
+                               await category.delete();
+                           }
+                       } catch (error) {
+                           console.log('Erro ao deletar canais');
                        }
-                   };
 
-                   await interaction.member.roles.add(role);
+                       delete matches[matchId];
+                       saveData();
+
+                       const embed = new EmbedBuilder()
+                           .setTitle('🎉 PARTIDA FINALIZADA! 🎉')
+                           .setDescription(`**${winnerTeam.name}** ${winnerTeam.icon} VENCEU!\n\n**Estatísticas atualizadas:**\n${winnerTeam.icon} **${winnerTeam.name}**: ${winnerTeam.stats.victories}V - ${winnerTeam.stats.defeats}D\n${loserTeam.icon} **${loserTeam.name}**: ${loserTeam.stats.victories}V - ${loserTeam.stats.defeats}D`)
+                           .setColor('#00FF00');
+
+                       interaction.reply({ embeds: [embed] });
+                   }
+               } else {
                    saveData();
-
-                   const embed = new EmbedBuilder()
-                       .setTitle(`${icone} Time ${nome} criado!`)
-                       .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
-                       .setColor(hexColor);
-
-                   await interaction.reply({ embeds: [embed], flags: 64 });
-               } catch (error) {
-                   console.error(error);
-                   await interaction.reply({ content: 'Erro ao criar o time!', flags: 64 });
+                   interaction.reply({ content: `Voto registrado! Time 1: ${team1Votes} | Time 2: ${team2Votes} (${match.winnerVote.requiredVotes} votos necessários)`, flags: 64 });
                }
            }
        }
-   }
+
+       if (interaction.isModalSubmit()) {
+           if (interaction.customId === 'modal_criar_time') {
+               const nome = interaction.fields.getTextInputValue('nome_time');
+               const corRGB = interaction.fields.getTextInputValue('cor_time');
+               const icone = interaction.fields.getTextInputValue('icone_time');
+
+               const rgbArray = corRGB.split(',').map(num => parseInt(num.trim()));
+               if (rgbArray.length !== 3 || rgbArray.some(num => isNaN(num) || num < 0 || num > 255)) {
+                   return interaction.reply({ content: 'Formato de cor inválido! Use: 255,0,0', flags: 64 });
+              }
+
+              const hexColor = `#${rgbArray.map(num => num.toString(16).padStart(2, '0')).join('')}`;
+
+              try {
+                  const role = await interaction.guild.roles.create({
+                      name: nome,
+                      color: hexColor,
+                      reason: 'Criação de time Free Fire'
+                  });
+
+                  const teamId = Date.now().toString();
+                  teams[teamId] = {
+                      id: teamId,
+                      name: nome,
+                      color: hexColor,
+                      icon: icone,
+                      creator: interaction.user.id,
+                      leaders: [interaction.user.id],
+                      members: [interaction.user.id],
+                      roleId: role.id,
+                      createdAt: new Date().toISOString(),
+                      stats: {
+                          victories: 0,
+                          defeats: 0,
+                          matches: 0
+                      }
+                  };
+
+                  await interaction.member.roles.add(role);
+                  saveData();
+
+                  const embed = new EmbedBuilder()
+                      .setTitle(`${icone} Time ${nome} criado!`)
+                      .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
+                      .setColor(hexColor);
+
+                  interaction.reply({ embeds: [embed], flags: 64 });
+              } catch (error) {
+                  console.error(error);
+                  interaction.reply({ content: 'Erro ao criar o time!', flags: 64 });
+              }
+          }
+      }
+  }
 };
-
-async function startWinnerVote(interaction, match, team1, team2, allPlayers) {
-    const embed = new EmbedBuilder()
-        .setTitle('🏆 Qual time ganhou?')
-        .setDescription(`**${team1.name}** ${team1.icon} VS **${team2.name}** ${team2.icon}\n\n⏰ Votação de 30 segundos${match.winnerVote.round > 1 ? ` (Rodada ${match.winnerVote.round})` : ''}`)
-        .setColor('#FFD700');
-
-    const row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(`vencedor_${match.team1}_${match.id}`)
-                .setLabel(`${team1.name} ${team1.icon}`)
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId(`vencedor_${match.team2}_${match.id}`)
-                .setLabel(`${team2.name} ${team2.icon}`)
-                .setStyle(ButtonStyle.Primary)
-        );
-
-    const channel = interaction.client.channels.cache.get(match.channels.general);
-    if (channel) {
-        const voteMessage = await channel.send({ embeds: [embed], components: [row] });
-        
-        match.status = 'votando_vencedor';
-        saveData();
-
-        await interaction.reply({ content: 'Partida finalizada! Votação do vencedor iniciada.', flags: 64 });
-
-        setTimeout(async () => {
-            await processWinnerVoteResult(interaction.client, match, team1, team2, allPlayers, voteMessage);
-        }, 30000);
-    } else {
-        await interaction.reply({ content: 'Erro: Canal da partida não encontrado!', flags: 64 });
-    }
-}
-
-async function processFinishVoteResult(client, match, allPlayers, voteMessage) {
-    loadData();
-    
-    const updatedMatch = matches[match.id];
-    if (!updatedMatch || !updatedMatch.finishVote) return;
-
-    const yesVotes = updatedMatch.finishVote.yes.length;
-    const noVotes = updatedMatch.finishVote.no.length;
-
-    try {
-        await voteMessage.edit({ components: [] });
-    } catch (error) {
-        console.log('Erro ao editar mensagem de votação');
-    }
-
-    if (yesVotes > noVotes) {
-        const team1 = teams[updatedMatch.team1];
-        const team2 = teams[updatedMatch.team2];
-
-        updatedMatch.winnerVote = {
-            team1Votes: [],
-            team2Votes: [],
-            requiredVotes: Math.ceil(allPlayers.length / 2),
-            round: 1
-        };
-
-        await startWinnerVote({ client, reply: () => {} }, updatedMatch, team1, team2, allPlayers);
-    } else {
-        const channel = client.channels.cache.get(updatedMatch.channels.general);
-        if (channel) {
-            const embed = new EmbedBuilder()
-                .setTitle('❌ Votação para Finalizar Rejeitada')
-                .setDescription(`A votação para finalizar a partida foi rejeitada.\n\n**Resultado:** ${yesVotes} sim / ${noVotes} não\n\nA partida continua.`)
-                .setColor('#FF0000');
-
-            await channel.send({ embeds: [embed] });
-        }
-
-        delete updatedMatch.finishVote;
-        saveData();
-    }
-}
-
-async function processWinnerVoteResult(client, match, team1, team2, allPlayers, voteMessage) {
-    loadData();
-    
-    const updatedMatch = matches[match.id];
-    if (!updatedMatch || !updatedMatch.winnerVote) return;
-
-    const team1Votes = updatedMatch.winnerVote.team1Votes.length;
-    const team2Votes = updatedMatch.winnerVote.team2Votes.length;
-
-    if (team1Votes === team2Votes) {
-        updatedMatch.winnerVote.team1Votes = [];
-        updatedMatch.winnerVote.team2Votes = [];
-        updatedMatch.winnerVote.round++;
-
-        try {
-            await voteMessage.delete();
-        } catch (error) {
-            console.log('Erro ao deletar mensagem de votação');
-        }
-
-        const embed = new EmbedBuilder()
-            .setTitle('🔄 Empate na Votação!')
-            .setDescription(`Houve empate! Iniciando nova votação...\n\n**${team1.name}** ${team1.icon} VS **${team2.name}** ${team2.icon}\n\n⏰ Votação de 30 segundos (Rodada ${updatedMatch.winnerVote.round})`)
-            .setColor('#FFA500');
-
-        const row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`vencedor_${updatedMatch.team1}_${updatedMatch.id}`)
-                    .setLabel(`${team1.name} ${team1.icon}`)
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId(`vencedor_${updatedMatch.team2}_${updatedMatch.id}`)
-                    .setLabel(`${team2.name} ${team2.icon}`)
-                    .setStyle(ButtonStyle.Primary)
-            );
-
-        const channel = client.channels.cache.get(updatedMatch.channels.general);
-        if (channel) {
-            const newVoteMessage = await channel.send({ embeds: [embed], components: [row] });
-            
-            saveData();
-
-            setTimeout(async () => {
-                await processWinnerVoteResult(client, updatedMatch, team1, team2, allPlayers, newVoteMessage);
-            }, 30000);
-        }
-    } else {
-        const finalWinnerTeamId = team1Votes > team2Votes ? updatedMatch.team1 : updatedMatch.team2;
-        const loserTeamId = finalWinnerTeamId === updatedMatch.team1 ? updatedMatch.team2 : updatedMatch.team1;
-
-        const winnerTeam = teams[finalWinnerTeamId];
-        const loserTeam = teams[loserTeamId];
-
-        if (winnerTeam && loserTeam) {
-            winnerTeam.stats.victories++;
-            winnerTeam.stats.matches++;
-            loserTeam.stats.defeats++;
-            loserTeam.stats.matches++;
-
-            try {
-                const guild = client.guilds.cache.get(voteMessage.guild.id);
-                const category = guild.channels.cache.get(updatedMatch.channels.category);
-                if (category) {
-                    for (const child of category.children.cache.values()) {
-                        await child.delete();
-                    }
-                    await category.delete();
-                }
-            } catch (error) {
-                console.log('Erro ao deletar canais');
-            }
-
-            delete matches[updatedMatch.id];
-            saveData();
-
-            const embed = new EmbedBuilder()
-                .setTitle('🎉 PARTIDA FINALIZADA! 🎉')
-                .setDescription(`**${winnerTeam.name}** ${winnerTeam.icon} VENCEU!\n\n**Estatísticas atualizadas:**\n${winnerTeam.icon} **${winnerTeam.name}**: ${winnerTeam.stats.victories}V - ${winnerTeam.stats.defeats}D\n${loserTeam.icon} **${loserTeam.name}**: ${loserTeam.stats.victories}V - ${loserTeam.stats.defeats}D`)
-                .setColor('#00FF00');
-
-            const announcementChannel = client.channels.cache.get('1381722215812169910');
-            if (announcementChannel) {
-                await announcementChannel.send({ embeds: [embed] });
-            }
-
-            try {
-                await voteMessage.delete();
-            } catch (error) {
-                console.log('Erro ao deletar mensagem de votação');
-            }
-        }
-    }
-}
