@@ -26,14 +26,14 @@ module.exports = {
         );
 
         if (!match) {
-            return message.reply('Nenhuma partida ativa encontrada neste canal!');
+            return await safeReply(message, 'Nenhuma partida ativa encontrada neste canal!');
         }
 
         const team1 = teams[match.team1];
         const team2 = teams[match.team2];
 
         if (!team1 || !team2) {
-            return message.reply('Erro: Times da partida não encontrados!');
+            return await safeReply(message, 'Erro: Times da partida não encontrados!');
         }
 
         const isAdmin = message.member.permissions.has('Administrator');
@@ -43,7 +43,7 @@ module.exports = {
                              (team2.leader === message.author.id);
 
         if (!isAdmin && !isTeam1Leader && !isTeam2Leader) {
-            return message.reply('Apenas líderes dos times ou administradores podem cancelar a partida!');
+            return await safeReply(message, 'Apenas líderes dos times ou administradores podem cancelar a partida!');
         }
 
         try {
@@ -81,11 +81,40 @@ module.exports = {
             delete matches[match.id];
             fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
 
-            message.reply({ embeds: [embed] });
+            await safeReply(message, { embeds: [embed] });
 
         } catch (error) {
             console.error('Erro ao cancelar partida:', error);
-            message.reply('Erro ao cancelar a partida!');
+            await safeReply(message, 'Erro ao cancelar a partida!');
         }
     }
 };
+
+async function safeReply(message, content) {
+    try {
+        if (message.channel && message.channel.isTextBased()) {
+            return await message.reply(content);
+        } else {
+            console.log('Canal não está disponível no cache, tentando buscar...');
+            const channel = await message.client.channels.fetch(message.channelId).catch(() => null);
+            if (channel && channel.isTextBased()) {
+                return await channel.send(typeof content === 'string' ? content : content.embeds ? { embeds: content.embeds } : content);
+            } else {
+                console.log('Não foi possível enviar mensagem - canal não encontrado');
+                return null;
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao responder mensagem:', error);
+        try {
+            const channel = await message.client.channels.fetch(message.channelId).catch(() => null);
+            if (channel && channel.isTextBased()) {
+                const safeContent = typeof content === 'string' ? content : 'Erro ao processar comando.';
+                return await channel.send(safeContent);
+            }
+        } catch (fallbackError) {
+            console.error('Erro no fallback de resposta:', fallbackError);
+        }
+        return null;
+    }
+}

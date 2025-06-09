@@ -1,3 +1,5 @@
+const safeReply = require('../utils/safeReply');
+
 module.exports = {
     name: 'forcarinicio',
     description: 'Força o início da partida (apenas administradores)',
@@ -6,12 +8,12 @@ module.exports = {
         
         if (!message.member) {
             console.log('Não é em servidor');
-            return message.reply('❌ Este comando só pode ser usado em servidores!');
+            return await safeReply(message, '❌ Este comando só pode ser usado em servidores!');
         }
 
         if (!message.member.permissions.has('Administrator')) {
             console.log('Usuário sem permissão de admin:', message.author.tag);
-            return message.reply('❌ Apenas administradores podem usar este comando!');
+            return await safeReply(message, '❌ Apenas administradores podem usar este comando!');
         }
 
         console.log('Usuário é admin, prosseguindo...');
@@ -50,7 +52,7 @@ module.exports = {
 
         if (!match) {
             console.log('Nenhuma partida encontrada');
-            return message.reply('❌ Nenhuma partida aguardando jogadores encontrada neste canal!');
+            return await safeReply(message, '❌ Nenhuma partida aguardando jogadores encontrada neste canal!');
         }
 
         console.log('Partida encontrada:', match.id);
@@ -60,7 +62,7 @@ module.exports = {
 
         if (!team1 || !team2) {
             console.log('Times não encontrados');
-            return message.reply('❌ Erro: Times da partida não encontrados!');
+            return await safeReply(message, '❌ Erro: Times da partida não encontrados!');
         }
 
         console.log('Times encontrados:', team1.name, 'vs', team2.name);
@@ -68,7 +70,7 @@ module.exports = {
         const lobbyChannel = client.channels.cache.get(match.lobbyChannelId);
         if (!lobbyChannel) {
             console.log('Canal de lobby não encontrado');
-            return message.reply('❌ Canal de lobby não encontrado!');
+            return await safeReply(message, '❌ Canal de lobby não encontrado!');
         }
 
         const voiceChannel1 = client.channels.cache.get(match.channels.voice1);
@@ -76,7 +78,7 @@ module.exports = {
 
         if (!voiceChannel1 || !voiceChannel2) {
             console.log('Canais de voz não encontrados');
-            return message.reply('❌ Canais de voz da partida não encontrados!');
+            return await safeReply(message, '❌ Canais de voz da partida não encontrados!');
         }
 
         const membersInLobby = lobbyChannel.members;
@@ -89,15 +91,15 @@ module.exports = {
         });
 
         if (team1Members.size === 0 && team2Members.size === 0) {
-            return message.reply('❌ Não há nenhum jogador de ambos os times no canal de lobby!');
+            return await safeReply(message, '❌ Não há nenhum jogador de ambos os times no canal de lobby!');
         }
 
         if (team1Members.size === 0) {
-            return message.reply(`❌ Não há jogadores do time **${team1.name}** ${team1.icon} no canal de lobby!`);
+            return await safeReply(message, `❌ Não há jogadores do time **${team1.name}** ${team1.icon} no canal de lobby!`);
         }
 
         if (team2Members.size === 0) {
-            return message.reply(`❌ Não há jogadores do time **${team2.name}** ${team2.icon} no canal de lobby!`);
+            return await safeReply(message, `❌ Não há jogadores do time **${team2.name}** ${team2.icon} no canal de lobby!`);
         }
 
         const team1Players = Array.from(team1Members.values());
@@ -168,6 +170,6 @@ module.exports = {
         const responseMessage = `🔥 **PARTIDA INICIADA FORÇADAMENTE POR ADMIN!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n⚠️ **Aviso:** Este início foi forçado por ${message.author}, ignorando o mínimo de 4 jogadores por time.\n\n🗑️ Canal de lobby temporário foi removido.`;
         
         console.log('Enviando resposta');
-        message.reply(responseMessage);
+        await safeReply(message, responseMessage);
     }
 };

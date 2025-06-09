@@ -106,6 +106,17 @@ async function safeReply(interaction, content) {
     }
 }
 
+async function safeDelete(message) {
+    try {
+        if (message && message.deletable) {
+            await message.delete();
+            console.log('Mensagem deletada com sucesso');
+        }
+    } catch (error) {
+        console.error('Erro ao deletar mensagem:', error);
+    }
+}
+
 loadData();
 
 module.exports = {
@@ -226,14 +237,17 @@ module.exports = {
                 const targetTeam = teams[targetTeamId];
 
                 if (!challengerTeam || !targetTeam) {
+                    await safeDelete(interaction.message);
                     return await safeReply(interaction, { content: 'Times não encontrados!', flags: 64 });
                 }
 
                 if (isTeamInMatch(challengerTeamId)) {
+                    await safeDelete(interaction.message);
                     return await safeReply(interaction, { content: 'O time desafiante já está em uma partida!', flags: 64 });
                 }
 
                 if (isTeamInMatch(targetTeamId)) {
+                    await safeDelete(interaction.message);
                     return await safeReply(interaction, { content: 'Seu time já está em uma partida!', flags: 64 });
                 }
 
@@ -247,6 +261,7 @@ module.exports = {
 
                 try {
                     await interaction.deferReply({ flags: 64 });
+                    await safeDelete(interaction.message);
                 } catch (error) {
                     console.error('Erro ao defer reply:', error);
                 }
@@ -423,6 +438,7 @@ module.exports = {
                    return await safeReply(interaction, { content: 'Apenas o líder do time pode recusar desafios!', flags: 64 });
                }
 
+               await safeDelete(interaction.message);
                await safeReply(interaction, { content: `❌ ${interaction.user} recusou o desafio do time **${challengerTeam?.name}**!` });
            }
 
@@ -440,6 +456,7 @@ module.exports = {
                
                if (!invite || invite.status !== 'pendente') {
                    console.log('Invite not found or not pending');
+                   await safeDelete(interaction.message);
                    return await safeReply(interaction, { content: 'Convite não encontrado ou já processado!', flags: 64 });
                }
 
@@ -453,6 +470,7 @@ module.exports = {
                    console.log('Team not found');
                    invite.status = 'expirado';
                    saveData();
+                   await safeDelete(interaction.message);
                    return await safeReply(interaction, { content: 'Time não encontrado! O convite expirou.', flags: 64 });
                }
 
@@ -464,6 +482,7 @@ module.exports = {
                if (userInOtherTeam) {
                    invite.status = 'recusado';
                    saveData();
+                   await safeDelete(interaction.message);
                    return await safeReply(interaction, { content: 'Você já está em outro time!', flags: 64 });
                }
 
@@ -495,6 +514,7 @@ module.exports = {
                        .setDescription(`${interaction.user} foi adicionado ao time **${team.name}** ${team.icon || ''}!`)
                        .setColor(team.color);
 
+                   await safeDelete(interaction.message);
                    await safeReply(interaction, { embeds: [embed] });
 
                    try {
@@ -521,6 +541,7 @@ module.exports = {
                const invite = invites[inviteId];
                
                if (!invite || invite.status !== 'pendente') {
+                   await safeDelete(interaction.message);
                    return await safeReply(interaction, { content: 'Convite não encontrado ou já processado!', flags: 64 });
                }
 
@@ -537,6 +558,7 @@ module.exports = {
                   .setDescription(`${interaction.user} recusou o convite para o time **${team?.name || 'Time'}**.`)
                   .setColor('#FF0000');
 
+              await safeDelete(interaction.message);
               await safeReply(interaction, { embeds: [embed] });
 
               try {

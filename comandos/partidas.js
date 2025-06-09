@@ -1,4 +1,6 @@
+// partidas.js
 const { EmbedBuilder } = require('discord.js');
+const safeReply = require('../utils/safeReply');
 
 module.exports = {
     name: 'partidas',
@@ -27,7 +29,7 @@ module.exports = {
         );
 
         if (activeMatches.length === 0) {
-            return message.reply('Não há partidas ativas no momento!');
+            return await safeReply(message, 'Não há partidas ativas no momento!');
         }
 
         const embed = new EmbedBuilder()
@@ -67,6 +69,6 @@ module.exports = {
         embed.setDescription(description);
         embed.setFooter({ text: `Total: ${activeMatches.length} partida(s) ativa(s)` });
 
-        message.reply({ embeds: [embed] });
+        await safeReply(message, { embeds: [embed] });
     }
 };

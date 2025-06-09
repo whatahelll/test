@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const safeReply = require('../utils/safeReply');
 
 module.exports = {
     name: 'convites',
@@ -22,7 +23,7 @@ module.exports = {
 
         const team = Object.values(teams).find(t => t.leaders.includes(message.author.id));
         if (!team) {
-            return message.reply('Você não é líder de nenhum time!');
+            return await safeReply(message, 'Você não é líder de nenhum time!');
         }
 
         const pendingInvites = Object.values(invites).filter(inv => 
@@ -30,7 +31,7 @@ module.exports = {
         );
 
         if (pendingInvites.length === 0) {
-            return message.reply('Seu time não possui convites pendentes.');
+            return await safeReply(message, 'Seu time não possui convites pendentes.');
         }
 
         const embed = new EmbedBuilder()
@@ -53,6 +54,6 @@ module.exports = {
         }
 
         embed.setDescription(description);
-        message.reply({ embeds: [embed] });
+        await safeReply(message, { embeds: [embed] });
     }
 };

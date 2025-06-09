@@ -1,4 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const safeReply = require('../utils/safeReply');
 
 module.exports = {
     name: 'times',
@@ -21,7 +22,7 @@ module.exports = {
         }
 
         if (Object.keys(teams).length === 0) {
-            return message.reply('Nenhum time foi criado ainda!');
+            return await safeReply(message, 'Nenhum time foi criado ainda!');
         }
 
         function isTeamInMatch(teamId) {
@@ -120,6 +121,6 @@ module.exports = {
             }
         }
 
-        message.reply({ embeds: [embed], components });
+        await safeReply(message, { embeds: [embed], components });
     }
 };

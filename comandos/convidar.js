@@ -1,4 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const safeReply = require('../utils/safeReply');
 
 module.exports = {
     name: 'convidar',
@@ -31,12 +32,12 @@ module.exports = {
         });
 
         if (!team) {
-            return message.reply('Você não é líder de nenhum time!');
+            return await safeReply(message, 'Você não é líder de nenhum time!');
         }
 
         const member = message.mentions.members.first();
         if (!member) {
-            return message.reply('Mencione um membro para convidar!');
+            return await safeReply(message, 'Mencione um membro para convidar!');
         }
 
         if (!team.members || !Array.isArray(team.members)) {
@@ -44,7 +45,7 @@ module.exports = {
         }
 
         if (team.members.includes(member.id)) {
-            return message.reply('Este membro já está no seu time!');
+            return await safeReply(message, 'Este membro já está no seu time!');
         }
 
         const memberInOtherTeam = Object.values(teams).some(t => {
@@ -53,7 +54,7 @@ module.exports = {
         });
 
         if (memberInOtherTeam) {
-            return message.reply('Este membro já está em outro time!');
+            return await safeReply(message, 'Este membro já está em outro time!');
         }
 
         const existingInvite = Object.values(invites).find(inv => 
@@ -61,7 +62,7 @@ module.exports = {
         );
 
         if (existingInvite) {
-            return message.reply('Este membro já possui um convite pendente do seu time!');
+            return await safeReply(message, 'Este membro já possui um convite pendente do seu time!');
         }
 
         const inviteId = `invite_${Date.now()}_${member.id}`;
@@ -104,10 +105,10 @@ module.exports = {
             fs.writeFileSync('./dados/convites.json', JSON.stringify(invites, null, 2));
             console.log('Convite salvo:', inviteId, invites[inviteId]);
             
-            await message.reply({ embeds: [embed], components: [row] });
+            await safeReply(message, { embeds: [embed], components: [row] });
         } catch (error) {
             console.error('Erro ao salvar convite:', error);
-            message.reply('Erro ao enviar convite!');
+            await safeReply(message, 'Erro ao enviar convite!');
         }
     }
 };

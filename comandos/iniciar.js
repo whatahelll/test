@@ -23,14 +23,14 @@ module.exports = {
         );
 
         if (!match) {
-            return message.reply('Nenhuma partida encontrada neste canal!');
+            return await safeReply(message, 'Nenhuma partida encontrada neste canal!');
         }
 
         const team1 = teams[match.team1];
         const team2 = teams[match.team2];
 
         if (!team1 || !team2) {
-            return message.reply('Erro: Times da partida não encontrados!');
+            return await safeReply(message, 'Erro: Times da partida não encontrados!');
         }
 
         const isTeam1Leader = (team1.leaders && team1.leaders.includes(message.author.id)) || 
@@ -39,12 +39,12 @@ module.exports = {
                              (team2.leader === message.author.id);
 
         if (!isTeam1Leader && !isTeam2Leader) {
-            return message.reply('Apenas os líderes dos times podem iniciar a partida!');
+            return await safeReply(message, 'Apenas os líderes dos times podem iniciar a partida!');
         }
 
         const lobbyChannel = client.channels.cache.get(match.lobbyChannelId);
         if (!lobbyChannel) {
-            return message.reply('Canal de lobby não encontrado!');
+            return await safeReply(message, 'Canal de lobby não encontrado!');
         }
 
         const membersInLobby = lobbyChannel.members;
@@ -52,11 +52,11 @@ module.exports = {
         const team2Members = membersInLobby.filter(member => member.roles.cache.has(team2.roleId));
 
         if (team1Members.size < 4) {
-            return message.reply(`❌ O time **${team1.name}** ${team1.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team1Members.size}/4)\n✅ O time **${team2.name}** ${team2.icon} possui ${team2Members.size} jogadores no lobby.`);
+            return await safeReply(message, `❌ O time **${team1.name}** ${team1.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team1Members.size}/4)\n✅ O time **${team2.name}** ${team2.icon} possui ${team2Members.size} jogadores no lobby.`);
         }
 
         if (team2Members.size < 4) {
-            return message.reply(`❌ O time **${team2.name}** ${team2.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team2Members.size}/4)\n✅ O time **${team1.name}** ${team1.icon} possui ${team1Members.size} jogadores no lobby.`);
+            return await safeReply(message, `❌ O time **${team2.name}** ${team2.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team2Members.size}/4)\n✅ O time **${team1.name}** ${team1.icon} possui ${team1Members.size} jogadores no lobby.`);
         }
 
         if (!match.startVote) {
@@ -70,7 +70,7 @@ module.exports = {
 
         if (isTeam1Leader) {
             if (match.startVote.team1Ready && match.startVote.team1Leader === message.author.id) {
-                return message.reply('Você já confirmou o início! Aguardando confirmação do outro líder...');
+                return await safeReply(message, 'Você já confirmou o início! Aguardando confirmação do outro líder...');
             }
             match.startVote.team1Ready = true;
             match.startVote.team1Leader = message.author.id;
@@ -78,7 +78,7 @@ module.exports = {
 
         if (isTeam2Leader) {
             if (match.startVote.team2Ready && match.startVote.team2Leader === message.author.id) {
-                return message.reply('Você já confirmou o início! Aguardando confirmação do outro líder...');
+                return await safeReply(message, 'Você já confirmou o início! Aguardando confirmação do outro líder...');
             }
             match.startVote.team2Ready = true;
             match.startVote.team2Leader = message.author.id;
@@ -90,14 +90,14 @@ module.exports = {
             const team1Status = match.startVote.team1Ready ? '✅' : '⏳';
             const team2Status = match.startVote.team2Ready ? '✅' : '⏳';
             
-            return message.reply(`**Confirmação de Início:**\n${team1Status} ${team1.name} ${team1.icon} (${team1Members.size} jogadores)\n${team2Status} ${team2.name} ${team2.icon} (${team2Members.size} jogadores)\n\n${match.startVote.team1Ready && match.startVote.team2Ready ? 'Ambos confirmaram!' : 'Aguardando confirmação do outro líder...'}`);
+            return await safeReply(message, `**Confirmação de Início:**\n${team1Status} ${team1.name} ${team1.icon} (${team1Members.size} jogadores)\n${team2Status} ${team2.name} ${team2.icon} (${team2Members.size} jogadores)\n\n${match.startVote.team1Ready && match.startVote.team2Ready ? 'Ambos confirmaram!' : 'Aguardando confirmação do outro líder...'}`);
         }
 
         const voiceChannel1 = client.channels.cache.get(match.channels.voice1);
         const voiceChannel2 = client.channels.cache.get(match.channels.voice2);
 
         if (!voiceChannel1 || !voiceChannel2) {
-            return message.reply('Canais de voz da partida não encontrados!');
+            return await safeReply(message, 'Canais de voz da partida não encontrados!');
         }
 
         const team1Players = team1Members.first(4);
@@ -150,6 +150,35 @@ module.exports = {
             client.matchMonitor.stopMonitoringMatch(match.id);
         }
 
-        message.reply(`🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n🗑️ Canal de lobby temporário foi removido.`);
+        await safeReply(message, `🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n🗑️ Canal de lobby temporário foi removido.`);
     }
 };
+
+async function safeReply(message, content) {
+    try {
+        if (message.channel && message.channel.isTextBased()) {
+            return await message.reply(content);
+        } else {
+            console.log('Canal não está disponível no cache, tentando buscar...');
+            const channel = await message.client.channels.fetch(message.channelId).catch(() => null);
+            if (channel && channel.isTextBased()) {
+                return await channel.send(typeof content === 'string' ? content : content.embeds ? { embeds: content.embeds } : content);
+            } else {
+                console.log('Não foi possível enviar mensagem - canal não encontrado');
+                return null;
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao responder mensagem:', error);
+        try {
+            const channel = await message.client.channels.fetch(message.channelId).catch(() => null);
+            if (channel && channel.isTextBased()) {
+                const safeContent = typeof content === 'string' ? content : 'Erro ao processar comando.';
+                return await channel.send(safeContent);
+            }
+        } catch (fallbackError) {
+            console.error('Erro no fallback de resposta:', fallbackError);
+        }
+        return null;
+    }
+}

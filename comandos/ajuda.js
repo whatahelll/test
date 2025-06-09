@@ -1,4 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
+const safeReply = require('../utils/safeReply');
 
 module.exports = {
     name: 'ajuda',
@@ -52,6 +53,6 @@ module.exports = {
             })
             .setTimestamp();
 
-        message.reply({ embeds: [embed] });
+        await safeReply(message, { embeds: [embed] });
     }
 };
