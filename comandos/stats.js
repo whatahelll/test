@@ -18,6 +18,12 @@ module.exports = {
             return message.reply('Você não está em nenhum time!');
         }
 
+        const role = message.guild.roles.cache.get(team.roleId);
+        if (role && role.iconURL()) {
+            team.icon = role.iconURL();
+            fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
+        }
+
         const winRate = team.stats.matches > 0 ? ((team.stats.victories / team.stats.matches) * 100).toFixed(1) : 0;
         
         let membersInfo = '';
@@ -40,7 +46,7 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle(`${team.icon} Estatísticas do Time ${team.name}`)
+            .setTitle(`${team.icon || ''} Estatísticas do Time ${team.name}`)
             .setColor(team.color)
             .setThumbnail(message.guild.iconURL())
             .addFields(

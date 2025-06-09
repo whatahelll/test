@@ -76,11 +76,11 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setTitle('📩 Convite para Time')
-            .setDescription(`${member}, você foi convidado para o time **${team.name}** ${team.icon}!\n\nConvidado por: ${message.author}`)
+            .setDescription(`${member}, você foi convidado para o time **${team.name}** ${team.icon || ''}!\n\nConvidado por: ${message.author}`)
             .setColor(team.color)
             .setThumbnail(message.guild.iconURL())
             .addFields(
-                { name: 'Time', value: `${team.icon} ${team.name}`, inline: true },
+                { name: 'Time', value: `${team.icon || ''} ${team.name}`, inline: true },
                 { name: 'Membros', value: `${team.members.length}`, inline: true },
                 { name: 'Vitórias', value: `${team.stats?.victories || 0}`, inline: true }
             );

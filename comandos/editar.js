@@ -33,7 +33,7 @@ module.exports = {
                .setDescription('**Comandos disponíveis:**\n\n`,editar icone <emoji>` - Altera o ícone do cargo\n`,editar prefixo <texto>` - Define prefixo do time (será automaticamente colocado entre [])\n`,editar prefixo remover` - Remove o prefixo')
                .setColor(team.color)
                .addFields(
-                   { name: 'Ícone Atual', value: team.icon, inline: true },
+                   { name: 'Ícone Atual', value: team.icon || 'Nenhum', inline: true },
                    { name: 'Prefixo Atual', value: team.prefix || 'Nenhum', inline: true }
                );
 
@@ -56,12 +56,12 @@ module.exports = {
 
                await role.setIcon(newIcon);
                
-               team.icon = newIcon;
+               team.icon = role.iconURL() || '';
                fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
 
                const embed = new EmbedBuilder()
                    .setTitle('✅ Ícone Atualizado!')
-                   .setDescription(`O ícone do time **${team.name}** foi alterado para ${newIcon}`)
+                   .setDescription(`O ícone do time **${team.name}** foi alterado${team.icon ? ` para ${team.icon}` : ''}`)
                    .setColor(team.color);
 
                message.reply({ embeds: [embed] });
@@ -80,7 +80,7 @@ module.exports = {
 
        else if (subcommand === 'prefixo') {
            if (args[1] === 'remover') {
-               delete team.prefix;
+            delete team.prefix;
                fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
 
                await updateMemberNicknames(message.guild, team, null);

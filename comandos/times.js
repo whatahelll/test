@@ -50,6 +50,12 @@ module.exports = {
 
         for (const team of Object.values(teams)) {
             try {
+                const role = message.guild.roles.cache.get(team.roleId);
+                if (role && role.iconURL()) {
+                    team.icon = role.iconURL();
+                    fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
+                }
+
                 let leaderInfo = 'Nenhum líder';
                 
                 if (team.leaders && Array.isArray(team.leaders) && team.leaders.length > 0) {
@@ -67,7 +73,7 @@ module.exports = {
                 const teamInMatch = isTeamInMatch(team.id);
                 const statusEmoji = teamInMatch ? '⚔️' : '';
                 
-                description += `${team.icon} **${team.name}** ${statusEmoji}\n`;
+                description += `${team.icon || ''} **${team.name}** ${statusEmoji}\n`;
                 description += `Líder: ${leaderInfo}\n`;
                 description += `Membros: ${team.members?.length || 0}\n`;
                 description += `V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n`;
@@ -93,7 +99,7 @@ module.exports = {
             } catch (error) {
                 console.log(`Erro ao buscar informações do time ${team.name}:`, error);
                 
-                description += `${team.icon} **${team.name}**\n`;
+                description += `${team.icon || ''} **${team.name}**\n`;
                 description += `Líder: Erro ao carregar\n`;
                 description += `Membros: ${team.members?.length || 0}\n`;
                 description += `V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n\n`;

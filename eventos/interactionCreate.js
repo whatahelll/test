@@ -107,18 +107,10 @@ module.exports = {
                     .setRequired(true)
                     .setPlaceholder('255,0,0');
 
-                const iconeInput = new TextInputBuilder()
-                    .setCustomId('icone_time')
-                    .setLabel('Emoji do Time')
-                    .setStyle(TextInputStyle.Short)
-                    .setRequired(true)
-                    .setMaxLength(2);
-
                 const firstActionRow = new ActionRowBuilder().addComponents(nomeInput);
                 const secondActionRow = new ActionRowBuilder().addComponents(corInput);
-                const thirdActionRow = new ActionRowBuilder().addComponents(iconeInput);
 
-                modal.addComponents(firstActionRow, secondActionRow, thirdActionRow);
+                modal.addComponents(firstActionRow, secondActionRow);
 
                 try {
                     await interaction.showModal(modal);
@@ -163,7 +155,7 @@ module.exports = {
 
                 const embed = new EmbedBuilder()
                     .setTitle('🔥 Desafio Enviado! 🔥')
-                    .setDescription(`O time **${challengerTeam.name}** ${challengerTeam.icon} desafiou **${targetTeam.name}** ${targetTeam.icon}!\n\nLíder do **${targetTeam.name}**, aceite ou recuse o desafio:`)
+                    .setDescription(`O time **${challengerTeam.name}** ${challengerTeam.icon || ''} desafiou **${targetTeam.name}** ${targetTeam.icon || ''}!\n\nLíder do **${targetTeam.name}**, aceite ou recuse o desafio:`)
                     .setColor(parseInt(challengerTeam.color.replace('#', ''), 16));
 
                 const row = new ActionRowBuilder()
@@ -331,7 +323,7 @@ module.exports = {
 
                     const embed = new EmbedBuilder()
                         .setTitle('🔥 PARTIDA INICIADA! 🔥')
-                        .setDescription(`**${challengerTeam.name}** ${challengerTeam.icon} VS **${targetTeam.name}** ${targetTeam.icon}\n\nTodos os jogadores devem entrar no canal <#1367543346469404756> para serem movidos automaticamente!\n\nUse \`,iniciar\` para mover os jogadores quando estiverem prontos.\n\n⏰ **ATENÇÃO:** A partida será cancelada automaticamente em 2 minutos se não for iniciada!`)
+                        .setDescription(`**${challengerTeam.name}** ${challengerTeam.icon || ''} VS **${targetTeam.name}** ${targetTeam.icon || ''}\n\nTodos os jogadores devem entrar no canal <#1367543346469404756> para serem movidos automaticamente!\n\nUse \`,iniciar\` para mover os jogadores quando estiverem prontos.\n\n⏰ **ATENÇÃO:** A partida será cancelada automaticamente em 2 minutos se não for iniciada!`)
                         .setColor('#00FF00');
 
                     await generalChannel.send({ embeds: [embed] });
@@ -454,7 +446,7 @@ module.exports = {
 
                     const embed = new EmbedBuilder()
                         .setTitle('✅ Convite Aceito!')
-                        .setDescription(`${interaction.user} foi adicionado ao time **${team.name}** ${team.icon}!`)
+                        .setDescription(`${interaction.user} foi adicionado ao time **${team.name}** ${team.icon || ''}!`)
                         .setColor(team.color);
 
                     await safeReply(interaction, { embeds: [embed] });
@@ -462,7 +454,7 @@ module.exports = {
                     try {
                         const inviter = await interaction.client.users.fetch(invite.invitedBy);
                         const channel = interaction.channel;
-                        await channel.send(`📩 ${inviter}, ${interaction.user.username} aceitou seu convite para o time **${team.name}** ${team.icon}!`);
+                        await channel.send(`📩 ${inviter}, ${interaction.user.username} aceitou seu convite para o time **${team.name}** ${team.icon || ''}!`);
                     } catch (error) {
                         console.log('Erro ao notificar quem convidou');
                     }
@@ -581,7 +573,6 @@ module.exports = {
            if (interaction.customId === 'modal_criar_time') {
                const nome = interaction.fields.getTextInputValue('nome_time');
                const corRGB = interaction.fields.getTextInputValue('cor_time');
-               const icone = interaction.fields.getTextInputValue('icone_time');
 
                const rgbArray = corRGB.split(',').map(num => parseInt(num.trim()));
                if (rgbArray.length !== 3 || rgbArray.some(num => isNaN(num) || num < 0 || num > 255)) {
@@ -598,11 +589,13 @@ module.exports = {
                    });
 
                    const teamId = Date.now().toString();
+                   const roleIcon = role.iconURL();
+                   
                    teams[teamId] = {
                        id: teamId,
                        name: nome,
                        color: hexColor,
-                       icon: icone,
+                       icon: roleIcon || '',
                        creator: interaction.user.id,
                        leaders: [interaction.user.id],
                        members: [interaction.user.id],
@@ -619,7 +612,7 @@ module.exports = {
                    saveData();
 
                    const embed = new EmbedBuilder()
-                       .setTitle(`${icone} Time ${nome} criado!`)
+                       .setTitle(`${teams[teamId].icon} Time ${nome} criado!`)
                        .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
                        .setColor(hexColor);
 
