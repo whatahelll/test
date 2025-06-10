@@ -22,11 +22,15 @@ module.exports = {
 
         const match = Object.values(matches).find(m => 
             m.channels && m.channels.general === message.channel.id && 
-            (m.status === 'aguardando_jogadores' || m.status === 'em_andamento')
+            (m.status === 'aguardando_jogadores' || m.status === 'em_andamento' || m.status === 'votando_vencedor')
         );
 
         if (!match) {
             return await safeReply(message, 'Nenhuma partida ativa encontrada neste canal!');
+        }
+
+        if (match.status === 'em_andamento' || match.status === 'votando_vencedor') {
+            return await safeReply(message, '❌ Não é possível cancelar uma partida que já começou! Use `,finalizar` para terminar a partida.');
         }
 
         const team1 = teams[match.team1];
@@ -80,6 +84,10 @@ module.exports = {
 
             delete matches[match.id];
             fs.writeFileSync('./dados/partidas.json', JSON.stringify(matches, null, 2));
+
+            if (client.matchMonitor) {
+                client.matchMonitor.stopMonitoringMatch(match.id);
+            }
 
             await safeReply(message, { embeds: [embed] });
 
