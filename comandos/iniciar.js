@@ -1,3 +1,5 @@
+const safeReply = require('../utils/safeReply');
+
 module.exports = {
     name: 'iniciar',
     description: 'Inicia a partida movendo jogadores',
@@ -51,12 +53,8 @@ module.exports = {
         const team1Members = membersInLobby.filter(member => member.roles.cache.has(team1.roleId));
         const team2Members = membersInLobby.filter(member => member.roles.cache.has(team2.roleId));
 
-        if (team1Members.size < 4) {
-            return await safeReply(message, `❌ O time **${team1.name}** ${team1.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team1Members.size}/4)\n✅ O time **${team2.name}** ${team2.icon} possui ${team2Members.size} jogadores no lobby.`);
-        }
-
-        if (team2Members.size < 4) {
-            return await safeReply(message, `❌ O time **${team2.name}** ${team2.icon} precisa de pelo menos 4 jogadores no canal de lobby! (Atual: ${team2Members.size}/4)\n✅ O time **${team1.name}** ${team1.icon} possui ${team1Members.size} jogadores no lobby.`);
+        if (team1Members.size < 4 || team2Members.size < 4) {
+            return await safeReply(message, `❌ **Jogadores insuficientes no lobby!**\n\n${team1.icon} **${team1.name}**: ${team1Members.size}/4 jogadores\n${team2.icon} **${team2.name}**: ${team2Members.size}/4 jogadores\n\n⚠️ Ambos os times precisam de pelo menos 4 jogadores no canal de lobby para iniciar a partida.`);
         }
 
         if (!match.startVote) {
@@ -100,8 +98,8 @@ module.exports = {
             return await safeReply(message, 'Canais de voz da partida não encontrados!');
         }
 
-        const team1Players = team1Members.first(4);
-        const team2Players = team2Members.first(4);
+        const team1Players = Array.from(team1Members.values()).slice(0, 4);
+        const team2Players = Array.from(team2Members.values()).slice(0, 4);
 
         let team1Moved = 0;
         let team2Moved = 0;
@@ -153,32 +151,3 @@ module.exports = {
         await safeReply(message, `🔥 **PARTIDA INICIADA!** 🔥\n\n${team1Moved} jogadores do **${team1.name}** ${team1.icon} vs ${team2Moved} jogadores do **${team2.name}** ${team2.icon} foram movidos para seus canais!\n\n🗑️ Canal de lobby temporário foi removido.`);
     }
 };
-
-async function safeReply(message, content) {
-    try {
-        if (message.channel && message.channel.isTextBased()) {
-            return await message.reply(content);
-        } else {
-            console.log('Canal não está disponível no cache, tentando buscar...');
-            const channel = await message.client.channels.fetch(message.channelId).catch(() => null);
-            if (channel && channel.isTextBased()) {
-                return await channel.send(typeof content === 'string' ? content : content.embeds ? { embeds: content.embeds } : content);
-            } else {
-                console.log('Não foi possível enviar mensagem - canal não encontrado');
-                return null;
-            }
-        }
-    } catch (error) {
-        console.error('Erro ao responder mensagem:', error);
-        try {
-            const channel = await message.client.channels.fetch(message.channelId).catch(() => null);
-            if (channel && channel.isTextBased()) {
-                const safeContent = typeof content === 'string' ? content : 'Erro ao processar comando.';
-                return await channel.send(safeContent);
-            }
-        } catch (fallbackError) {
-            console.error('Erro no fallback de resposta:', fallbackError);
-        }
-        return null;
-    }
-}
