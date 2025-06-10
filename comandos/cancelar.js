@@ -80,6 +80,19 @@ module.exports = {
                 }
             }
 
+            if (match.channels.spectator) {
+                const spectatorChannel = client.channels.cache.get(match.channels.spectator);
+                if (spectatorChannel) {
+                    try {
+                        console.log(`Deletando canal espectador: ${spectatorChannel.name} (${spectatorChannel.id})`);
+                        await spectatorChannel.delete();
+                        console.log('Canal espectador deletado');
+                    } catch (error) {
+                        console.log('Erro ao deletar canal espectador:', error.message);
+                    }
+                }
+            }
+
             const category = message.guild.channels.cache.get(match.channels.category);
             if (category) {
                 for (const child of category.children.cache.values()) {

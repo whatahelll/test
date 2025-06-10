@@ -93,6 +93,17 @@ module.exports = {
                             if (announcementChannel) {
                                 await announcementChannel.send({ embeds: [embed] });
                             }
+                            if (match.channels.spectator) {
+                                const spectatorChannel = member.guild.channels.cache.get(match.channels.spectator);
+                                if (spectatorChannel) {
+                                    try {
+                                        await spectatorChannel.delete();
+                                        console.log('Canal espectador deletado');
+                                    } catch (error) {
+                                        console.log('Erro ao deletar canal espectador:', error.message);
+                                    }
+                                }
+                            }
 
                             const category = member.guild.channels.cache.get(match.channels.category);
                             if (category) {

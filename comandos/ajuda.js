@@ -31,7 +31,7 @@ module.exports = {
                 },
                 {
                     name: '⚔️ **Comandos de Partidas**',
-                    value: '`,partidas` - Mostra as partidas ativas\n`,iniciar` - Inicia a partida (líderes dos times)\n`,finalizar` - Inicia votação para finalizar partida\n`,cancelar` - Cancela a partida atual (líderes)',
+                    value: '`,partidas` - Mostra as partidas ativas\n`,iniciar` - Inicia a partida (líderes dos times)\n`,finalizar` - Inicia votação para finalizar partida\n`,cancelar` - Cancela a partida atual (líderes)\n`,emissor @membro` - Escolhe um emissor para transmitir',
                     inline: false
                 },
                 {
@@ -41,12 +41,12 @@ module.exports = {
                 },
                 {
                     name: '📋 **Como Funciona**',
-                    value: '• Use o botão "Criar Time" no canal principal\n• Convide membros para seu time\n• Desafie outros times com `,desafiar @NomeDoTime`\n• Entre no canal de lobby para participar das partidas\n• Líderes devem confirmar o início com `,iniciar`\n• Vote no final das partidas para determinar o vencedor',
+                    value: '• Use o botão "Criar Time" no canal principal\n• Convide membros para seu time\n• Desafie outros times com `,desafiar @NomeDoTime`\n• Entre no canal de lobby para participar das partidas\n• Líderes devem confirmar o início com `,iniciar`\n• Use `,emissor @usuario` para escolher quem vai transmitir\n• Vote no final das partidas para determinar o vencedor',
                     inline: false
                 },
                 {
                     name: '⚙️ **Permissões**',
-                    value: '**Líder:** Pode convidar, remover membros, editar time, iniciar/cancelar partidas, desafiar outros times\n**Criador:** Todas as permissões de líder + promover/rebaixar outros líderes\n**Membro:** Pode participar de partidas e votar em finalizações',
+                    value: '**Líder:** Pode convidar, remover membros, editar time, iniciar/cancelar partidas, desafiar outros times, escolher emissor\n**Criador:** Todas as permissões de líder + promover/rebaixar outros líderes\n**Membro:** Pode participar de partidas e votar em finalizações',
                     inline: false
                 }
             )

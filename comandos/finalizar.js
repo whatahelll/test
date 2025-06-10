@@ -278,6 +278,19 @@ async function processWinnerVoteResult(client, match, team1, team2, allPlayers, 
                       }
                   }
               }
+
+              if (updatedMatch.channels.spectator) {
+                  const spectatorChannel = guild.channels.cache.get(updatedMatch.channels.spectator);
+                  if (spectatorChannel) {
+                      try {
+                          console.log(`Deletando canal espectador: ${spectatorChannel.name} (${spectatorChannel.id})`);
+                          await spectatorChannel.delete();
+                          console.log('Canal espectador deletado');
+                      } catch (error) {
+                          console.log('Erro ao deletar canal espectador:', error.message);
+                      }
+                  }
+              }
               
               const category = guild.channels.cache.get(updatedMatch.channels.category);
               if (category) {

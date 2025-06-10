@@ -144,6 +144,19 @@ class MatchMonitor {
                 }
             }
 
+            if (match.channels?.spectator) {
+                const spectatorChannel = guild.channels.cache.get(match.channels.spectator);
+                if (spectatorChannel) {
+                    try {
+                        console.log(`Deletando canal espectador: ${spectatorChannel.name} (${spectatorChannel.id})`);
+                        await spectatorChannel.delete();
+                        console.log('Canal espectador deletado com sucesso');
+                    } catch (error) {
+                        console.log('Erro ao deletar canal espectador:', error.message);
+                    }
+                }
+            }
+
             const category = guild.channels.cache.get(match.channels?.category);
             if (category) {
                 console.log(`Categoria encontrada: ${category.name} (${category.id})`);
@@ -177,7 +190,8 @@ class MatchMonitor {
                         match.channels.voice2,
                         match.channels.text1,
                         match.channels.text2,
-                        match.channels.general
+                        match.channels.general,
+                        match.channels.spectator
                     ].filter(id => id);
                     
                     console.log(`Tentando deletar ${channelIds.length} canais individuais`);
