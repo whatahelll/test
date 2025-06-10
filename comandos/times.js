@@ -1,4 +1,3 @@
-// comandos/times.js (atualizado sem botões de desafio)
 const { EmbedBuilder } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 
@@ -34,10 +33,15 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle('🔥 Times Free Fire 🔥')
+            .setAuthor({ 
+                name: 'Times Free Fire',
+                iconURL: message.guild.iconURL()
+            })
             .setDescription('Lista de todos os times disponíveis:')
             .setColor('#FF6B35')
-            .setFooter({ text: 'Use ,desafiar @NomeDoTime para desafiar um time!' });
+            .setFooter({ 
+                text: 'Use ,desafiar @NomeDoTime para desafiar um time!'
+            });
 
         let description = '';
 

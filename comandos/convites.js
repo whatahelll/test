@@ -35,8 +35,14 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle(`📩 Convites Pendentes - ${team.name}`)
-            .setColor(team.color);
+            .setAuthor({ 
+                name: `Convites Pendentes - ${team.name}`,
+                iconURL: message.guild.iconURL()
+            })
+            .setColor(team.color)
+            .setFooter({ 
+                text: `Total: ${pendingInvites.length} convite(s) pendente(s)`
+            });
 
         let description = '';
         for (const invite of pendingInvites) {

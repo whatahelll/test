@@ -29,13 +29,19 @@ module.exports = {
 
        if (args.length === 0) {
            const embed = new EmbedBuilder()
-               .setTitle(`⚙️ Editar Time ${team.name}`)
+               .setAuthor({ 
+                   name: `Editar Time ${team.name}`,
+                   iconURL: message.author.avatarURL()
+               })
                .setDescription('**Comandos disponíveis:**\n\n`,editar icone <emoji>` - Altera o ícone do cargo\n`,editar prefixo <texto>` - Define prefixo do time (será automaticamente colocado entre [])\n`,editar prefixo remover` - Remove o prefixo')
                .setColor(team.color)
                .addFields(
                    { name: 'Ícone Atual', value: team.icon || 'Nenhum', inline: true },
                    { name: 'Prefixo Atual', value: team.prefix || 'Nenhum', inline: true }
-               );
+               )
+               .setFooter({ 
+                   text: 'Sistema de Edição de Times'
+               });
 
            return message.reply({ embeds: [embed] });
        }
@@ -60,9 +66,15 @@ module.exports = {
                fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
 
                const embed = new EmbedBuilder()
-                   .setTitle('✅ Ícone Atualizado!')
+                   .setAuthor({ 
+                       name: 'Ícone Atualizado!',
+                       iconURL: message.author.avatarURL()
+                   })
                    .setDescription(`O ícone do time **${team.name}** foi alterado${team.icon ? ` para ${team.icon}` : ''}`)
-                   .setColor(team.color);
+                   .setColor(team.color)
+                   .setFooter({ 
+                       text: 'Sistema de Edição de Times'
+                   });
 
                message.reply({ embeds: [embed] });
 
@@ -86,9 +98,15 @@ module.exports = {
                await updateMemberNicknames(message.guild, team, null);
 
                const embed = new EmbedBuilder()
-                   .setTitle('✅ Prefixo Removido!')
+                   .setAuthor({ 
+                       name: 'Prefixo Removido!',
+                       iconURL: message.author.avatarURL()
+                   })
                    .setDescription(`O prefixo do time **${team.name}** foi removido`)
-                   .setColor(team.color);
+                   .setColor(team.color)
+                   .setFooter({ 
+                       text: 'Sistema de Edição de Times'
+                   });
 
                return message.reply({ embeds: [embed] });
            }
@@ -109,9 +127,15 @@ module.exports = {
            await updateMemberNicknames(message.guild, team, newPrefix);
 
            const embed = new EmbedBuilder()
-               .setTitle('✅ Prefixo Atualizado!')
+               .setAuthor({ 
+                   name: 'Prefixo Atualizado!',
+                   iconURL: message.author.avatarURL()
+               })
                .setDescription(`O prefixo do time **${team.name}** foi alterado para **${newPrefix}**\n\nTodos os membros do time agora terão este prefixo antes do nome.`)
-               .setColor(team.color);
+               .setColor(team.color)
+               .setFooter({ 
+                   text: 'Sistema de Edição de Times'
+               });
 
            message.reply({ embeds: [embed] });
        }

@@ -46,7 +46,10 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle(`${team.icon || ''} Estatísticas do Time ${team.name}`)
+            .setAuthor({ 
+                name: `Estatísticas do Time ${team.name}`,
+                iconURL: team.icon || message.guild.iconURL()
+            })
             .setColor(team.color)
             .setThumbnail(message.guild.iconURL())
             .addFields(
@@ -55,7 +58,9 @@ module.exports = {
                 { name: '👥 Membros', value: membersInfo || 'Nenhum membro', inline: true },
                 { name: '📈 Informações Gerais', value: `**Total de Membros:** ${team.members.length}\n**Criado em:** ${new Date(team.createdAt).toLocaleDateString('pt-BR')}\n**Cor do Time:** ${team.color}`, inline: false }
             )
-            .setFooter({ text: `👑 = Criador | ⭐ = Líder | 👤 = Membro` });
+            .setFooter({ 
+                text: '👑 = Criador | ⭐ = Líder | 👤 = Membro'
+            });
 
         message.reply({ embeds: [embed] });
     }

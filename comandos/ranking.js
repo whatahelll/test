@@ -31,8 +31,14 @@ module.exports = {
         });
 
         const embed = new EmbedBuilder()
-            .setTitle('🏆 Ranking dos Times 🏆')
-            .setColor('#FFD700');
+            .setAuthor({ 
+                name: 'Ranking dos Times',
+                iconURL: message.guild.iconURL()
+            })
+            .setColor('#FFD700')
+            .setFooter({ 
+                text: `Total de ${sortedTeams.length} times registrados`
+            });
 
         let description = '';
         sortedTeams.forEach((team, index) => {

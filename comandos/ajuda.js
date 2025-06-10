@@ -1,4 +1,3 @@
-// comandos/ajuda.js (atualizado)
 const { EmbedBuilder } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 
@@ -7,7 +6,10 @@ module.exports = {
     description: 'Mostra todos os comandos disponíveis',
     execute: async (message, args, client) => {
         const embed = new EmbedBuilder()
-            .setTitle('🔥 Comandos Free Fire Bot 🔥')
+            .setAuthor({ 
+                name: '🔥 Comandos Free Fire Bot 🔥',
+                iconURL: client.user.avatarURL()
+            })
             .setDescription('Lista de todos os comandos disponíveis:')
             .setColor('#FF6B35')
             .setThumbnail(message.guild.iconURL())
@@ -49,8 +51,7 @@ module.exports = {
                 }
             )
             .setFooter({ 
-                text: 'Use , antes de cada comando | Exemplo: ,desafiar @NomeDoTime',
-                iconURL: client.user.avatarURL()
+                text: 'Use , antes de cada comando | Exemplo: ,desafiar @NomeDoTime'
             })
             .setTimestamp();
 

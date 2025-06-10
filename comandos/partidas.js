@@ -1,4 +1,3 @@
-// partidas.js
 const { EmbedBuilder } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 
@@ -33,8 +32,14 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle('⚔️ Partidas Ativas')
-            .setColor('#FFD700');
+            .setAuthor({ 
+                name: 'Partidas Ativas',
+                iconURL: message.guild.iconURL()
+            })
+            .setColor('#FFD700')
+            .setFooter({ 
+                text: `Total: ${activeMatches.length} partida(s) ativa(s)`
+            });
 
         let description = '';
         for (const match of activeMatches) {
@@ -67,8 +72,6 @@ module.exports = {
         }
 
         embed.setDescription(description);
-        embed.setFooter({ text: `Total: ${activeMatches.length} partida(s) ativa(s)` });
-
         await safeReply(message, { embeds: [embed] });
     }
 };

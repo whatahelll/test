@@ -52,9 +52,15 @@ module.exports = {
 
         try {
             const embed = new EmbedBuilder()
-                .setTitle('❌ PARTIDA CANCELADA')
+                .setAuthor({ 
+                    name: 'PARTIDA CANCELADA',
+                    iconURL: message.guild.iconURL()
+                })
                 .setDescription(`A partida entre **${team1.name}** ${team1.icon} e **${team2.name}** ${team2.icon} foi cancelada por ${message.author}.\n\n**Motivo:** Cancelamento manual`)
-                .setColor('#FF0000');
+                .setColor('#FF0000')
+                .setFooter({ 
+                    text: 'Sistema de Partidas Free Fire'
+                });
 
             const announcementChannel = client.channels.cache.get('1381722215812169910');
             if (announcementChannel) {

@@ -1,4 +1,3 @@
-// comandos/desafiar.js
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 
@@ -66,14 +65,19 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setTitle('🔥 Desafio Enviado! 🔥')
+            .setAuthor({ 
+                name: 'Desafio Enviado!',
+                iconURL: message.author.avatarURL()
+            })
             .setDescription(`O time **${challengerTeam.name}** ${challengerTeam.icon || ''} desafiou **${targetTeam.name}** ${targetTeam.icon || ''}!\n\nLíderes do **${targetTeam.name}**, aceitem ou recusem o desafio:`)
             .setColor(parseInt(challengerTeam.color.replace('#', ''), 16))
             .addFields(
                 { name: '⚔️ Desafiante', value: `${challengerTeam.icon || ''} **${challengerTeam.name}**\nVitórias: ${challengerTeam.stats?.victories || 0}\nDerrotas: ${challengerTeam.stats?.defeats || 0}`, inline: true },
                 { name: '🛡️ Desafiado', value: `${targetTeam.icon || ''} **${targetTeam.name}**\nVitórias: ${targetTeam.stats?.victories || 0}\nDerrotas: ${targetTeam.stats?.defeats || 0}`, inline: true }
             )
-            .setFooter({ text: 'Apenas líderes do time desafiado podem aceitar/recusar' });
+            .setFooter({ 
+                text: 'Apenas líderes do time desafiado podem aceitar/recusar'
+            });
 
         const row = new ActionRowBuilder()
             .addComponents(
