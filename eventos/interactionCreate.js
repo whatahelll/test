@@ -1,3 +1,4 @@
+// eventos/interactionCreate.js (atualizado removendo botões de desafio do comando times)
 const { Events, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, EmbedBuilder, PermissionFlagsBits, ChannelType, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 
@@ -173,61 +174,6 @@ module.exports = {
                 }
             }
 
-            if (interaction.customId.startsWith('desafiar_')) {
-                const targetTeamId = interaction.customId.split('_')[1];
-                const challengerTeam = Object.values(teams).find(team => {
-                    if (team.leaders && Array.isArray(team.leaders)) {
-                        return team.leaders.includes(interaction.user.id);
-                    }
-                    if (team.leader) {
-                        return team.leader === interaction.user.id;
-                    }
-                    return false;
-                });
-                
-                if (!challengerTeam) {
-                    return await safeReply(interaction, { content: 'Você não é líder de nenhum time!', flags: 64 });
-                }
-
-                if (isTeamInMatch(challengerTeam.id)) {
-                    return await safeReply(interaction, { content: 'Seu time já está em uma partida! Finalize antes de desafiar outros times.', flags: 64 });
-                }
-
-                const targetTeam = teams[targetTeamId];
-                if (!targetTeam) {
-                    return await safeReply(interaction, { content: 'Time não encontrado!', flags: 64 });
-                }
-
-                if (isTeamInMatch(targetTeamId)) {
-                    return await safeReply(interaction, { content: 'Este time já está em uma partida! Tente novamente mais tarde.', flags: 64 });
-                }
-
-                if (challengerTeam.id === targetTeamId) {
-                    return await safeReply(interaction, { content: 'Você não pode desafiar seu próprio time!', flags: 64 });
-                }
-
-                const embed = new EmbedBuilder()
-                    .setTitle('🔥 Desafio Enviado! 🔥')
-                    .setDescription(`O time **${challengerTeam.name}** ${challengerTeam.icon || ''} desafiou **${targetTeam.name}** ${targetTeam.icon || ''}!\n\nLíder do **${targetTeam.name}**, aceite ou recuse o desafio:`)
-                    .setColor(parseInt(challengerTeam.color.replace('#', ''), 16));
-
-                const row = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`aceitar_desafio_${challengerTeam.id}_${targetTeamId}`)
-                            .setLabel('Aceitar Desafio')
-                            .setStyle(ButtonStyle.Success)
-                            .setEmoji('⚔️'),
-                        new ButtonBuilder()
-                            .setCustomId(`recusar_desafio_${challengerTeam.id}_${targetTeamId}`)
-                            .setLabel('Recusar Desafio')
-                            .setStyle(ButtonStyle.Danger)
-                            .setEmoji('❌')
-                    );
-
-                await safeReply(interaction, { embeds: [embed], components: [row] });
-            }
-
             if (interaction.customId.startsWith('aceitar_desafio_')) {
                 const parts = interaction.customId.split('_');
                 const challengerTeamId = parts[2];
@@ -251,12 +197,11 @@ module.exports = {
                     return await safeReply(interaction, { content: 'Seu time já está em uma partida!', flags: 64 });
                 }
 
-                const targetLeaderId = targetTeam.leaders && Array.isArray(targetTeam.leaders) 
-                    ? targetTeam.leaders[0] 
-                    : targetTeam.leader;
+                const isTargetLeader = (targetTeam.leaders && targetTeam.leaders.includes(interaction.user.id)) || 
+                                     (targetTeam.leader === interaction.user.id);
                 
-                if (targetLeaderId !== interaction.user.id) {
-                    return await safeReply(interaction, { content: 'Apenas o líder do time pode aceitar desafios!', flags: 64 });
+                if (!isTargetLeader) {
+                    return await safeReply(interaction, { content: 'Apenas líderes do time desafiado podem aceitar desafios!', flags: 64 });
                 }
 
                 try {
@@ -398,14 +343,19 @@ module.exports = {
                        interaction.client.matchMonitor.startMonitoringMatch(matchId);
                    }
 
+                   const successEmbed = new EmbedBuilder()
+                       .setTitle('✅ Desafio Aceito!')
+                       .setDescription(`${interaction.user} aceitou o desafio!\n\n**Partida criada:**\n${challengerTeam.icon} **${challengerTeam.name}** VS **${targetTeam.name}** ${targetTeam.icon}\n\n🎮 **Canal de lobby:** <#${lobbyChannel.id}>\n⚔️ **Canal da partida:** <#${generalChannel.id}>`)
+                       .setColor('#00FF00');
+
                    try {
-                       await interaction.editReply({ content: `✅ Desafio aceito! Canais criados com sucesso!\n🎮 Canal de lobby temporário: <#${lobbyChannel.id}>` });
+                       await interaction.editReply({ embeds: [successEmbed] });
                    } catch (error) {
                        console.error('Erro ao editar reply:', error);
                        try {
                            const channel = interaction.channel;
                            if (channel) {
-                               await channel.send(`✅ Desafio aceito! Canais criados com sucesso!\n🎮 Canal de lobby temporário: <#${lobbyChannel.id}>`);
+                               await channel.send({ embeds: [successEmbed] });
                            }
                        } catch (channelError) {
                            console.error('Erro ao enviar mensagem no canal:', channelError);
@@ -430,16 +380,20 @@ module.exports = {
                const challengerTeam = teams[challengerTeamId];
                const targetTeam = teams[targetTeamId];
 
-               const targetLeaderId = targetTeam?.leaders && Array.isArray(targetTeam.leaders) 
-                   ? targetTeam.leaders[0] 
-                   : targetTeam?.leader;
+               const isTargetLeader = (targetTeam?.leaders && targetTeam.leaders.includes(interaction.user.id)) || 
+                                     (targetTeam?.leader === interaction.user.id);
                
-               if (targetLeaderId !== interaction.user.id) {
-                   return await safeReply(interaction, { content: 'Apenas o líder do time pode recusar desafios!', flags: 64 });
+               if (!isTargetLeader) {
+                   return await safeReply(interaction, { content: 'Apenas líderes do time desafiado podem recusar desafios!', flags: 64 });
                }
 
+               const embed = new EmbedBuilder()
+                   .setTitle('❌ Desafio Recusado')
+                   .setDescription(`${interaction.user} recusou o desafio do time **${challengerTeam?.name}** ${challengerTeam?.icon || ''}!`)
+                   .setColor('#FF0000');
+
                await safeDelete(interaction.message);
-               await safeReply(interaction, { content: `❌ ${interaction.user} recusou o desafio do time **${challengerTeam?.name}**!` });
+               await safeReply(interaction, { embeds: [embed] });
            }
 
            if (interaction.customId.startsWith('aceitar_convite_')) {
@@ -536,160 +490,158 @@ module.exports = {
                
                const fullCustomId = interaction.customId;
                const inviteId = fullCustomId.replace('recusar_convite_', '');
-               console.log('Extracted inviteId:', inviteId);
-               
                const invite = invites[inviteId];
-               
-               if (!invite || invite.status !== 'pendente') {
-                   await safeDelete(interaction.message);
-                   return await safeReply(interaction, { content: 'Convite não encontrado ou já processado!', flags: 64 });
-               }
-
-               if (invite.userId !== interaction.user.id) {
-                   return await safeReply(interaction, { content: 'Este convite não é para você!', flags: 64 });
-              }
-
-              const team = teams[invite.teamId];
-              invite.status = 'recusado';
-              saveData();
-
-              const embed = new EmbedBuilder()
-                  .setTitle('❌ Convite Recusado')
-                  .setDescription(`${interaction.user} recusou o convite para o time **${team?.name || 'Time'}**.`)
-                  .setColor('#FF0000');
-
-              await safeDelete(interaction.message);
-              await safeReply(interaction, { embeds: [embed] });
-
-              try {
-                  const inviter = await interaction.client.users.fetch(invite.invitedBy);
-                  const channel = interaction.channel;
-                  await channel.send(`📩 ${inviter}, ${interaction.user.username} recusou seu convite para o time **${team?.name || 'Time'}**.`);
-              } catch (error) {
-                  console.log('Erro ao notificar quem convidou');
-              }
-          }
-
-          if (interaction.customId.startsWith('finalizar_sim_') || interaction.customId.startsWith('finalizar_nao_')) {
-              const parts = interaction.customId.split('_');
-              const vote = parts[1];
-              const matchId = parts[2];
               
-              const match = matches[matchId];
-              if (!match || !match.finishVote) {
-                  return await safeReply(interaction, { content: 'Votação não encontrada!', flags: 64 });
+              if (!invite || invite.status !== 'pendente') {
+                  await safeDelete(interaction.message);
+                  return await safeReply(interaction, { content: 'Convite não encontrado ou já processado!', flags: 64 });
               }
 
-              if (!match.players || !match.players.team1 || !match.players.team2) {
-                  return await safeReply(interaction, { content: 'Dados da partida incompletos!', flags: 64 });
-              }
+              if (invite.userId !== interaction.user.id) {
+                  return await safeReply(interaction, { content: 'Este convite não é para você!', flags: 64 });
+             }
 
-              const allPlayers = [...match.players.team1, ...match.players.team2];
-              if (!allPlayers.includes(interaction.user.id)) {
-                  return await safeReply(interaction, { content: 'Apenas jogadores da partida podem votar!', flags: 64 });
-              }
+             const team = teams[invite.teamId];
+             invite.status = 'recusado';
+             saveData();
 
-              if (match.finishVote.yes.includes(interaction.user.id) || match.finishVote.no.includes(interaction.user.id)) {
-                  return await safeReply(interaction, { content: 'Você já votou!', flags: 64 });
-              }
+             const embed = new EmbedBuilder()
+                 .setTitle('❌ Convite Recusado')
+                 .setDescription(`${interaction.user} recusou o convite para o time **${team?.name || 'Time'}**.`)
+                 .setColor('#FF0000');
 
-              if (vote === 'sim') {
-                  match.finishVote.yes.push(interaction.user.id);
-              } else {
-                  match.finishVote.no.push(interaction.user.id);
-              }
+             await safeDelete(interaction.message);
+             await safeReply(interaction, { embeds: [embed] });
 
-              saveData();
-              await safeReply(interaction, { content: `Voto registrado!`, flags: 64 });
-          }
+             try {
+                 const inviter = await interaction.client.users.fetch(invite.invitedBy);
+                 const channel = interaction.channel;
+                 await channel.send(`📩 ${inviter}, ${interaction.user.username} recusou seu convite para o time **${team?.name || 'Time'}**.`);
+             } catch (error) {
+                 console.log('Erro ao notificar quem convidou');
+             }
+         }
 
-          if (interaction.customId.startsWith('vencedor_')) {
-              const parts = interaction.customId.split('_');
-              const winnerTeamId = parts[1];
-              const matchId = parts[2];
-              
-              const match = matches[matchId];
-              if (!match || !match.winnerVote) {
-                  return await safeReply(interaction, { content: 'Votação não encontrada!', flags: 64 });
-              }
+         if (interaction.customId.startsWith('finalizar_sim_') || interaction.customId.startsWith('finalizar_nao_')) {
+             const parts = interaction.customId.split('_');
+             const vote = parts[1];
+             const matchId = parts[2];
+             
+             const match = matches[matchId];
+             if (!match || !match.finishVote) {
+                 return await safeReply(interaction, { content: 'Votação não encontrada!', flags: 64 });
+             }
 
-              if (!match.players || !match.players.team1 || !match.players.team2) {
-                  return await safeReply(interaction, { content: 'Dados da partida incompletos!', flags: 64 });
-              }
+             if (!match.players || !match.players.team1 || !match.players.team2) {
+                 return await safeReply(interaction, { content: 'Dados da partida incompletos!', flags: 64 });
+             }
 
-              const allPlayers = [...match.players.team1, ...match.players.team2];
-              if (!allPlayers.includes(interaction.user.id)) {
-                  return await safeReply(interaction, { content: 'Apenas jogadores da partida podem votar!', flags: 64 });
-              }
+             const allPlayers = [...match.players.team1, ...match.players.team2];
+             if (!allPlayers.includes(interaction.user.id)) {
+                 return await safeReply(interaction, { content: 'Apenas jogadores da partida podem votar!', flags: 64 });
+             }
 
-              if (match.winnerVote.team1Votes.includes(interaction.user.id) || match.winnerVote.team2Votes.includes(interaction.user.id)) {
-                  return await safeReply(interaction, { content: 'Você já votou!', flags: 64 });
-              }
+             if (match.finishVote.yes.includes(interaction.user.id) || match.finishVote.no.includes(interaction.user.id)) {
+                 return await safeReply(interaction, { content: 'Você já votou!', flags: 64 });
+             }
 
-              if (winnerTeamId === match.team1) {
-                  match.winnerVote.team1Votes.push(interaction.user.id);
-              } else {
-                  match.winnerVote.team2Votes.push(interaction.user.id);
-              }
+             if (vote === 'sim') {
+                 match.finishVote.yes.push(interaction.user.id);
+             } else {
+                 match.finishVote.no.push(interaction.user.id);
+             }
 
-              saveData();
-              await safeReply(interaction, { content: `Voto registrado!`, flags: 64 });
-          }
-      }
+             saveData();
+             await safeReply(interaction, { content: `Voto registrado!`, flags: 64 });
+         }
 
-      if (interaction.isModalSubmit()) {
-          if (interaction.customId === 'modal_criar_time') {
-              const nome = interaction.fields.getTextInputValue('nome_time');
-              const corRGB = interaction.fields.getTextInputValue('cor_time');
+         if (interaction.customId.startsWith('vencedor_')) {
+             const parts = interaction.customId.split('_');
+             const winnerTeamId = parts[1];
+             const matchId = parts[2];
+             
+             const match = matches[matchId];
+             if (!match || !match.winnerVote) {
+                 return await safeReply(interaction, { content: 'Votação não encontrada!', flags: 64 });
+             }
 
-              const rgbArray = corRGB.split(',').map(num => parseInt(num.trim()));
-              if (rgbArray.length !== 3 || rgbArray.some(num => isNaN(num) || num < 0 || num > 255)) {
-                  return await safeReply(interaction, { content: 'Formato de cor inválido! Use: 255,0,0', flags: 64 });
-              }
+             if (!match.players || !match.players.team1 || !match.players.team2) {
+                 return await safeReply(interaction, { content: 'Dados da partida incompletos!', flags: 64 });
+             }
 
-              const hexColor = `#${rgbArray.map(num => num.toString(16).padStart(2, '0')).join('')}`;
+             const allPlayers = [...match.players.team1, ...match.players.team2];
+             if (!allPlayers.includes(interaction.user.id)) {
+                 return await safeReply(interaction, { content: 'Apenas jogadores da partida podem votar!', flags: 64 });
+             }
 
-              try {
-                  const role = await interaction.guild.roles.create({
-                      name: nome,
-                      color: hexColor,
-                      reason: 'Criação de time Free Fire'
-                  });
+             if (match.winnerVote.team1Votes.includes(interaction.user.id) || match.winnerVote.team2Votes.includes(interaction.user.id)) {
+                 return await safeReply(interaction, { content: 'Você já votou!', flags: 64 });
+             }
 
-                  const teamId = Date.now().toString();
-                  const roleIcon = role.iconURL();
-                  
-                  teams[teamId] = {
-                      id: teamId,
-                      name: nome,
-                      color: hexColor,
-                      icon: roleIcon || '',
-                      creator: interaction.user.id,
-                      leaders: [interaction.user.id],
-                      members: [interaction.user.id],
-                      roleId: role.id,
-                      createdAt: new Date().toISOString(),
-                      stats: {
-                          victories: 0,
-                          defeats: 0,
-                          matches: 0
-                      }
-                  };
+             if (winnerTeamId === match.team1) {
+                 match.winnerVote.team1Votes.push(interaction.user.id);
+             } else {
+                 match.winnerVote.team2Votes.push(interaction.user.id);
+             }
 
-                  await interaction.member.roles.add(role);
-                  saveData();
+             saveData();
+             await safeReply(interaction, { content: `Voto registrado!`, flags: 64 });
+         }
+     }
 
-                  const embed = new EmbedBuilder()
-                      .setTitle(`${teams[teamId].icon} Time ${nome} criado!`)
-                      .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
-                      .setColor(hexColor);
+     if (interaction.isModalSubmit()) {
+         if (interaction.customId === 'modal_criar_time') {
+             const nome = interaction.fields.getTextInputValue('nome_time');
+             const corRGB = interaction.fields.getTextInputValue('cor_time');
 
-                  await safeReply(interaction, { embeds: [embed], flags: 64 });
-              } catch (error) {
-                  console.error(error);
-                  await safeReply(interaction, { content: 'Erro ao criar o time!', flags: 64 });
-              }
-          }
-      }
-  }
+             const rgbArray = corRGB.split(',').map(num => parseInt(num.trim()));
+             if (rgbArray.length !== 3 || rgbArray.some(num => isNaN(num) || num < 0 || num > 255)) {
+                 return await safeReply(interaction, { content: 'Formato de cor inválido! Use: 255,0,0', flags: 64 });
+             }
+
+             const hexColor = `#${rgbArray.map(num => num.toString(16).padStart(2, '0')).join('')}`;
+
+             try {
+                 const role = await interaction.guild.roles.create({
+                     name: nome,
+                     color: hexColor,
+                     reason: 'Criação de time Free Fire'
+                 });
+
+                 const teamId = Date.now().toString();
+                 const roleIcon = role.iconURL();
+                 
+                 teams[teamId] = {
+                     id: teamId,
+                     name: nome,
+                     color: hexColor,
+                     icon: roleIcon || '',
+                     creator: interaction.user.id,
+                     leaders: [interaction.user.id],
+                     members: [interaction.user.id],
+                     roleId: role.id,
+                     createdAt: new Date().toISOString(),
+                     stats: {
+                         victories: 0,
+                         defeats: 0,
+                         matches: 0
+                     }
+                 };
+
+                 await interaction.member.roles.add(role);
+                 saveData();
+
+                 const embed = new EmbedBuilder()
+                     .setTitle(`${teams[teamId].icon} Time ${nome} criado!`)
+                     .setDescription(`Líder: ${interaction.user}\nCor: ${hexColor}\nMembros: 1`)
+                     .setColor(hexColor);
+
+                 await safeReply(interaction, { embeds: [embed], flags: 64 });
+             } catch (error) {
+                 console.error(error);
+                 await safeReply(interaction, { content: 'Erro ao criar o time!', flags: 64 });
+             }
+         }
+     }
+ }
 };

@@ -1,3 +1,6 @@
+// deletar.js
+const safeReply = require('../utils/safeReply');
+
 module.exports = {
     name: 'deletar',
     description: 'Deleta seu time (apenas líderes)',
@@ -13,7 +16,7 @@ module.exports = {
 
         const team = Object.values(teams).find(t => t.leader === message.author.id);
         if (!team) {
-            return message.reply('Você não é líder de nenhum time!');
+            return await safeReply(message, 'Você não é líder de nenhum time!');
         }
 
         try {
@@ -23,10 +26,10 @@ module.exports = {
             delete teams[team.id];
             fs.writeFileSync('./dados/times.json', JSON.stringify(teams, null, 2));
 
-            message.reply(`Time **${team.name}** ${team.icon} foi deletado com sucesso!`);
+            await safeReply(message, `Time **${team.name}** ${team.icon} foi deletado com sucesso!`);
         } catch (error) {
             console.error(error);
-            message.reply('Erro ao deletar o time!');
+            await safeReply(message, 'Erro ao deletar o time!');
         }
     }
 };

@@ -1,4 +1,5 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+// comandos/times.js (atualizado sem botões de desafio)
+const { EmbedBuilder } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 
 module.exports = {
@@ -32,22 +33,13 @@ module.exports = {
             );
         }
 
-        const userTeam = Object.values(teams).find(t => {
-            if (t.leaders && Array.isArray(t.leaders)) {
-                return t.leaders.includes(message.author.id);
-            }
-            if (t.leader) {
-                return t.leader === message.author.id;
-            }
-            return false;
-        });
-
         const embed = new EmbedBuilder()
             .setTitle('🔥 Times Free Fire 🔥')
-            .setColor('#FF6B35');
+            .setDescription('Lista de todos os times disponíveis:')
+            .setColor('#FF6B35')
+            .setFooter({ text: 'Use ,desafiar @NomeDoTime para desafiar um time!' });
 
         let description = '';
-        const buttons = [];
 
         for (const team of Object.values(teams)) {
             try {
@@ -60,67 +52,51 @@ module.exports = {
                 let leaderInfo = 'Nenhum líder';
                 
                 if (team.leaders && Array.isArray(team.leaders) && team.leaders.length > 0) {
-                    const leader = await client.users.fetch(team.leaders[0]);
-                    leaderInfo = leader.username;
-                    
-                    if (team.leaders.length > 1) {
-                        leaderInfo += ` +${team.leaders.length - 1}`;
+                    try {
+                        const leader = await client.users.fetch(team.leaders[0]);
+                        leaderInfo = leader.username;
+                        
+                        if (team.leaders.length > 1) {
+                            leaderInfo += ` +${team.leaders.length - 1}`;
+                        }
+                    } catch (error) {
+                        leaderInfo = 'Erro ao carregar';
                     }
                 } else if (team.leader) {
-                    const leader = await client.users.fetch(team.leader);
-                    leaderInfo = leader.username;
+                    try {
+                        const leader = await client.users.fetch(team.leader);
+                        leaderInfo = leader.username;
+                    } catch (error) {
+                        leaderInfo = 'Erro ao carregar';
+                    }
                 }
 
                 const teamInMatch = isTeamInMatch(team.id);
-                const statusEmoji = teamInMatch ? '⚔️' : '';
+                const statusEmoji = teamInMatch ? '⚔️' : '⚡';
+                const statusText = teamInMatch ? ' **[EM PARTIDA]**' : '';
                 
-                description += `${team.icon || ''} **${team.name}** ${statusEmoji}\n`;
-                description += `Líder: ${leaderInfo}\n`;
-                description += `Membros: ${team.members?.length || 0}\n`;
-                description += `V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n`;
-                if (teamInMatch) {
-                    description += `🔴 **Em partida**\n`;
+                description += `${statusEmoji} ${team.icon || ''} **${team.name}**${statusText}\n`;
+                description += `👑 Líder: ${leaderInfo}\n`;
+                description += `👥 Membros: ${team.members?.length || 0}\n`;
+                description += `📊 V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n`;
+                
+                if (role) {
+                    description += `🏷️ Role: ${role}\n`;
                 }
+                
                 description += '\n';
 
-                const userIsLeaderOfThisTeam = (team.leaders && team.leaders.includes(message.author.id)) || 
-                                              (team.leader === message.author.id);
-
-                const userTeamInMatch = userTeam ? isTeamInMatch(userTeam.id) : false;
-
-                if (!userIsLeaderOfThisTeam && userTeam && !teamInMatch && !userTeamInMatch && buttons.length < 5) {
-                    buttons.push(
-                        new ButtonBuilder()
-                            .setCustomId(`desafiar_${team.id}`)
-                            .setLabel(`Desafiar ${team.name}`)
-                            .setStyle(ButtonStyle.Danger)
-                            .setEmoji('⚔️')
-                    );
-                }
             } catch (error) {
                 console.log(`Erro ao buscar informações do time ${team.name}:`, error);
                 
-                description += `${team.icon || ''} **${team.name}**\n`;
-                description += `Líder: Erro ao carregar\n`;
-                description += `Membros: ${team.members?.length || 0}\n`;
-                description += `V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n\n`;
+                description += `⚡ ${team.icon || ''} **${team.name}**\n`;
+                description += `👑 Líder: Erro ao carregar\n`;
+                description += `👥 Membros: ${team.members?.length || 0}\n`;
+                description += `📊 V: ${team.stats?.victories || 0} | D: ${team.stats?.defeats || 0}\n\n`;
             }
         }
 
         embed.setDescription(description);
-
-        const components = [];
-        if (buttons.length > 0) {
-            components.push(new ActionRowBuilder().addComponents(buttons));
-        } else if (userTeam) {
-            const userTeamInMatch = isTeamInMatch(userTeam.id);
-            if (userTeamInMatch) {
-                embed.setFooter({ text: 'Seu time está em uma partida! Finalize antes de desafiar outros times.' });
-            } else {
-                embed.setFooter({ text: 'Você não pode desafiar seu próprio time ou times que estão em partida!' });
-            }
-        }
-
-        await safeReply(message, { embeds: [embed], components });
+        await safeReply(message, { embeds: [embed] });
     }
 };

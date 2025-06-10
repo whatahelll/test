@@ -1,3 +1,4 @@
+// comandos/ajuda.js (atualizado)
 const { EmbedBuilder } = require('discord.js');
 const safeReply = require('../utils/safeReply');
 
@@ -13,7 +14,7 @@ module.exports = {
             .addFields(
                 {
                     name: '👥 **Comandos de Times**',
-                    value: '`,times` - Lista todos os times disponíveis\n`,stats` - Mostra as estatísticas do seu time\n`,ranking` - Mostra o ranking dos times',
+                    value: '`,times` - Lista todos os times disponíveis\n`,stats` - Mostra as estatísticas do seu time\n`,ranking` - Mostra o ranking dos times\n`,desafiar @time` - Desafia outro time marcando sua role',
                     inline: false
                 },
                 {
@@ -38,17 +39,17 @@ module.exports = {
                 },
                 {
                     name: '📋 **Como Funciona**',
-                    value: '• Use o botão "Criar Time" no canal principal\n• Convide membros para seu time\n• Desafie outros times através do comando `,times`\n• Entre no canal de lobby para participar das partidas\n• Líderes devem confirmar o início com `,iniciar`\n• Vote no final das partidas para determinar o vencedor',
+                    value: '• Use o botão "Criar Time" no canal principal\n• Convide membros para seu time\n• Desafie outros times com `,desafiar @NomeDoTime`\n• Entre no canal de lobby para participar das partidas\n• Líderes devem confirmar o início com `,iniciar`\n• Vote no final das partidas para determinar o vencedor',
                     inline: false
                 },
                 {
                     name: '⚙️ **Permissões**',
-                    value: '**Líder:** Pode convidar, remover membros, editar time, iniciar/cancelar partidas\n**Criador:** Todas as permissões de líder + promover/rebaixar outros líderes\n**Membro:** Pode participar de partidas e votar em finalizações',
+                    value: '**Líder:** Pode convidar, remover membros, editar time, iniciar/cancelar partidas, desafiar outros times\n**Criador:** Todas as permissões de líder + promover/rebaixar outros líderes\n**Membro:** Pode participar de partidas e votar em finalizações',
                     inline: false
                 }
             )
             .setFooter({ 
-                text: 'Use , antes de cada comando | Exemplo: ,times',
+                text: 'Use , antes de cada comando | Exemplo: ,desafiar @NomeDoTime',
                 iconURL: client.user.avatarURL()
             })
             .setTimestamp();

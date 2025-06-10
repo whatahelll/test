@@ -1,4 +1,4 @@
-// utils/safeReply.js
+// utils/safeReply.js (arquivo completo)
 async function safeReply(message, content) {
     try {
         if (message.channel && message.channel.isTextBased()) {
@@ -10,7 +10,7 @@ async function safeReply(message, content) {
                 if (typeof content === 'string') {
                     return await channel.send(content);
                 } else if (content.embeds) {
-                    return await channel.send({ embeds: content.embeds });
+                    return await channel.send({ embeds: content.embeds, components: content.components || [] });
                 } else {
                     return await channel.send(content);
                 }
